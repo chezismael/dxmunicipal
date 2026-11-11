@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diagnóstico municipal de registros de siniestros de tránsito</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #F4F6F5;
+  --surface: #FFFFFF;
+  --ink: #16212A;
+  --muted: #4E5E68;
+  --line: #CBD5DA;
+  --accent: #F2B705;
+  --accent-soft: #FFF1BD;
+  --on-accent: #16212A;
+  --primary: #16212A;
+  --on-primary: #FFFFFF;
+  --focus: #1D5FD1;
+  --error: #B3261E;
+  --error-soft: #FCE9E7;
+  --track: #D9E1E4;
+  --dash: #FFFFFF;
+  --note: #E9EFF1;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10171C; --surface: #18222A; --ink: #EAF0F3; --muted: #A9B7C0; --line: #33444F;
+    --accent: #F2B705; --accent-soft: #3A3010; --on-accent: #10171C;
+    --primary: #F2B705; --on-primary: #10171C;
+    --focus: #8DB5FF; --error: #FF9C94; --error-soft: #3A1E1C;
+    --track: #2A3943; --dash: #10171C; --note: #1F2B33;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10171C; --surface: #18222A; --ink: #EAF0F3; --muted: #A9B7C0; --line: #33444F;
+  --accent: #F2B705; --accent-soft: #3A3010; --on-accent: #10171C;
+  --primary: #F2B705; --on-primary: #10171C;
+  --focus: #8DB5FF; --error: #FF9C94; --error-soft: #3A1E1C;
+  --track: #2A3943; --dash: #10171C; --note: #1F2B33;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  background: var(--bg); z-index: 10;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ----- Barra superior y avance ----- */
+#topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: 10px 16px 12px;
+}
+.tb-in { max-width: 620px; margin: 0 auto; }
+.tb-title { font-weight: 700; font-size: 15.5px; line-height: 1.3; }
+.tb-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); margin-top: 2px; }
+.road { position: relative; height: 14px; border-radius: 7px; background: var(--track); overflow: hidden; margin-top: 8px; }
+.road::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px;
+  background-image: repeating-linear-gradient(90deg, var(--dash) 0 8px, transparent 8px 16px);
+}
+.road-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); border-radius: 7px; transition: width .4s ease; }
+.road-fill::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px;
+  background-image: repeating-linear-gradient(90deg, var(--on-accent) 0 8px, transparent 8px 16px);
+}
+
+/* ----- Contenido ----- */
+main { max-width: 620px; margin: 0 auto; padding: 22px 16px 150px; }
+.banner {
+  background: var(--note); border-radius: 10px; padding: 10px 14px; font-size: 14.5px; color: var(--muted); margin-bottom: 22px;
+}
+.banner a { color: var(--ink); font-weight: 700; }
+h1 { font-size: 30px; line-height: 1.15; margin: 0 0 14px; letter-spacing: -0.01em; }
+.lead { font-size: 18px; margin: 0 0 20px; }
+.facts { margin: 0 0 20px; padding: 0; }
+.facts div { padding: 12px 0; border-top: 1px solid var(--line); }
+.facts div:last-child { border-bottom: 1px solid var(--line); }
+.facts dt { font-weight: 700; margin: 0; }
+.facts dd { margin: 2px 0 0; color: var(--muted); }
+.defn { background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 0 0 24px; }
+.defn b { display: block; margin-bottom: 4px; }
+
+.trans {
+  background: var(--accent-soft); border-left: 6px solid var(--accent);
+  border-radius: 8px; padding: 12px 14px; margin: 0 0 22px; font-size: 16px;
+}
+[data-focus] { outline: none; }
+.qt { font-size: 23px; line-height: 1.28; margin: 0 0 8px; font-weight: 700; outline: none; }
+.help { color: var(--muted); font-size: 16px; margin: 0 0 18px; }
+.err {
+  background: var(--error-soft); color: var(--error); border-radius: 10px; padding: 10px 14px;
+  margin: 0 0 14px; font-weight: 700; font-size: 15.5px;
+}
+.count { color: var(--muted); font-size: 15px; margin: 4px 0 0; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+/* ----- Opciones ----- */
+.optw { margin-bottom: 10px; }
+.opt {
+  position: relative; display: flex; gap: 14px; align-items: flex-start;
+  min-height: 56px; padding: 14px 16px; background: var(--surface);
+  border: 2px solid var(--line); border-radius: 12px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.mark {
+  flex: none; width: 26px; height: 26px; margin-top: 1px; border: 2px solid var(--muted);
+  background: var(--surface); display: grid; place-items: center;
+}
+.opt.radio .mark { border-radius: 50%; }
+.opt.check .mark { border-radius: 7px; }
+.mark svg { width: 16px; height: 16px; opacity: 0; }
+.mark svg path { stroke: var(--bg); }
+.opt.radio .mark::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); opacity: 0; }
+.opt.sel { border-color: var(--ink); background: var(--accent-soft); }
+.opt.sel .mark { background: var(--ink); border-color: var(--ink); }
+.opt.sel .mark svg, .opt.sel.radio .mark::after { opacity: 1; }
+.opt input:focus-visible + .mark { outline: 3px solid var(--focus); outline-offset: 3px; }
+.opt.dk { border-style: dashed; background: transparent; color: var(--muted); }
+.opt.dk.sel { color: var(--ink); background: var(--accent-soft); }
+.optw.dkw { margin-top: 18px; }
+.opt.off { opacity: .5; cursor: not-allowed; }
+.opt.off input { cursor: not-allowed; }
+.ic { display: flex; align-items: center; gap: 2px; flex: none; min-width: var(--icw, 24px); height: 26px; margin-top: 1px; color: var(--muted); }
+.opt.sel .ic { color: var(--ink); }
+.lbl { padding-top: 1px; }
+.other-row { padding: 8px 0 2px 0; }
+
+.grp { margin: 0 0 28px; }
+.grp-t { display: block; width: 100%; font-weight: 700; font-size: 19px; padding: 0 0 6px; margin: 0 0 12px; border-bottom: 3px solid var(--accent); }
+
+/* ----- Campos ----- */
+.f { margin: 0 0 18px; }
+.f > label, .f > legend { display: block; font-weight: 700; margin: 0 0 6px; padding: 0; }
+.in, select.in, textarea.in {
+  width: 100%; min-height: 54px; padding: 12px 14px; font-size: 17px;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 10px;
+}
+textarea.in { min-height: 96px; resize: vertical; }
+.in:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-color: var(--ink); }
+.in[aria-invalid="true"] { border-color: var(--error); }
+.hint { color: var(--muted); font-size: 14.5px; margin: 5px 0 0; }
+.ferr { color: var(--error); font-weight: 700; font-size: 15px; margin: 6px 0 0; }
+
+/* ----- Botones ----- */
+.btn {
+  min-height: 54px; padding: 0 22px; border-radius: 12px; border: 2px solid var(--primary);
+  font-weight: 700; font-size: 17px; cursor: pointer; background: transparent; color: var(--ink);
+}
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.block { width: 100%; }
+.btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.btn.quiet { border-color: var(--line); }
+.stack { display: grid; gap: 12px; }
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.bar-in { max-width: 620px; margin: 0 auto; display: flex; gap: 12px; }
+.bar .btn.primary { flex: 1; }
+.bar .btn.back { flex: 0 0 auto; min-width: 104px; border-color: var(--line); }
+.status { color: var(--muted); font-size: 15px; margin: 4px 0 0; min-height: 1.5em; }
+
+/* ----- Fin ----- */
+.done-mark {
+  width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center; margin-bottom: 16px;
+}
+.done-mark svg { width: 30px; height: 30px; }
+
+/* ----- Vista de revisión ----- */
+.rv h2 { font-size: 20px; margin: 30px 0 8px; }
+.rv table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.rv th, .rv td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rv .scroll { overflow-x: auto; }
+.rv-q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 0 0 8px; }
+.rv-q .id { display: inline-block; background: var(--ink); color: var(--bg); border-radius: 6px; padding: 0 7px; font-weight: 700; font-size: 14px; margin-right: 6px; }
+.rv-q .rule { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+.rv-q .meta { color: var(--muted); font-size: 13.5px; }
+
+
+[hidden] { display: none !important; }
+#layout { max-width: 1000px; margin: 0 auto; }
+#notes { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.nb-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+.nb-head h2 { font-size: 17px; line-height: 1.3; margin: 0; }
+.nb-close { display: none; min-height: 40px; padding: 0 14px; font-size: 15px; }
+#nb-hint { margin: 0 0 10px; }
+.nb-text { min-height: 240px; font-size: 16px; }
+.tb-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.notes-fab {
+  flex: none; min-height: 36px; padding: 0 14px; border-radius: 18px; border: 2px solid var(--primary);
+  background: var(--surface); color: var(--ink); font-weight: 700; font-size: 15px; cursor: pointer;
+}
+.notes-fab:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+@media (max-width: 899px) {
+  #notes {
+    position: fixed; left: 0; right: 0; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 9;
+    display: none; max-height: 55vh; overflow-y: auto; margin: 0; border-radius: 14px 14px 0 0;
+    box-shadow: 0 -4px 18px rgba(0,0,0,.14);
+  }
+  #notes.open { display: block; }
+  #notes.open .nb-text { min-height: 150px; }
+  .nb-close { display: inline-flex; }
+}
+@media (min-width: 900px) {
+  #layout { display: grid; grid-template-columns: minmax(0, 620px) 300px; justify-content: center; gap: 28px; align-items: start; }
+  #layout main { margin: 0; }
+  #notes { position: sticky; top: 130px; display: block; }
+  .notes-fab { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) { .road-fill { transition: none; } }
+@media (min-width: 700px) { main { padding-top: 34px; } .qt { font-size: 26px; } h1 { font-size: 36px; } }
+
+</style>
+</head>
+<body>
+<header id="topbar" hidden>
+  <div class="tb-in">
+    <div class="tb-top"><div class="tb-title" id="tb-title"></div><button class="notes-fab" id="notes-open" type="button" aria-controls="notes" aria-expanded="false" hidden>Notas</button></div>
+    <div class="tb-meta"><span id="tb-part"></span><span id="tb-time"></span></div>
+    <div class="road" id="road" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Avance del cuestionario"><div class="road-fill" id="fill"></div></div>
+  </div>
+</header>
+<div id="layout">
+<main id="screen"></main>
+<aside id="notes" aria-label="Libreta de notas" hidden>
+  <div class="nb-head"><h2 id="nb-title">Notas</h2><button class="btn quiet nb-close" id="notes-close" type="button">Cerrar</button></div>
+  <p class="hint" id="nb-hint"></p>
+  <label class="sr" for="nb-text">Notas de esta parte</label>
+  <textarea class="in nb-text" id="nb-text" placeholder="Anote aquí lo que quiera recordar de esta parte. Se guarda en este dispositivo y se incluye en el CSV junto a las preguntas de esta parte."></textarea>
+  <button class="btn primary nb-copy" id="notes-csv" type="button" hidden>Descargar CSV con notas</button>
+  <button class="btn quiet nb-copy" id="notes-copy" type="button">Copiar CSV con notas</button>
+  <p class="status" id="nb-status" role="status" aria-live="polite"></p>
+</aside>
+</div>
+<datalist id="municipios"></datalist>
+<footer class="bar" id="actions" hidden>
+  <div class="bar-in">
+    <button class="btn back" id="btn-back" type="button">Atrás</button>
+    <button class="btn primary" id="btn-next" type="button">Siguiente</button>
+  </div>
+</footer>
+<noscript>Este cuestionario necesita JavaScript para funcionar.</noscript>
+<script>
+const MUNICIPIOS = ["Acatic","Acatlán de Juárez","Ahualulco de Mercado","Amacueca","Amatitán","Ameca","Arandas","Atemajac de Brizuela","Atengo","Atenguillo","Atotonilco el Alto","Atoyac","Autlán de Navarro","Ayotlán","Ayutla","Bolaños","Cabo Corrientes","Casimiro Castillo","Cañadas de Obregón","Chapala","Chimaltitán","Chiquilistlán","Cihuatlán","Cocula","Colotlán","Concepción de Buenos Aires","Cuautitlán de García Barragán","Cuautla","Cuquío","Degollado","Ejutla","El Arenal","El Grullo","El Limón","El Salto","Encarnación de Díaz","Etzatlán","Guachinango","Guadalajara","Gómez Farías","Hostotipaquillo","Huejuquilla el Alto","Huejúcar","Ixtlahuacán de los Membrillos","Ixtlahuacán del Río","Jalostotitlán","Jamay","Jesús María","Jilotlán de los Dolores","Jocotepec","Juanacatlán","Juchitlán","La Barca","La Huerta","La Manzanilla de la Paz","Lagos de Moreno","Magdalena","Mascota","Mazamitla","Mexticacán","Mezquitic","Mixtlán","Ocotlán","Ojuelos de Jalisco","Pihuamo","Poncitlán","Puerto Vallarta","Quitupan","San Cristóbal de la Barranca","San Diego de Alejandría","San Gabriel","San Ignacio Cerro Gordo","San Juan de los Lagos","San Juanito de Escobedo","San Julián","San Marcos","San Martín Hidalgo","San Martín de Bolaños","San Miguel el Alto","San Pedro Tlaquepaque","San Sebastián del Oeste","Santa María de los Ángeles","Santa María del Oro","Sayula","Tala","Talpa de Allende","Tamazula de Gordiano","Tapalpa","Tecalitlán","Techaluta de Montenegro","Tecolotlán","Tenamaxtlán","Teocaltiche","Teocuitatlán de Corona","Tepatitlán de Morelos","Tequila","Teuchitlán","Tizapán el Alto","Tlajomulco de Zúñiga","Tolimán","Tomatlán","Tonalá","Tonaya","Tonila","Totatiche","Tototlán","Tuxcacuesco","Tuxcueca","Tuxpan","Unión de San Antonio","Unión de Tula","Valle de Guadalupe","Valle de Juárez","Villa Corona","Villa Guerrero","Villa Hidalgo","Villa Purificación","Yahualica de González Gallo","Zacoalco de Torres","Zapopan","Zapotiltic","Zapotitlán de Vadillo","Zapotlanejo","Zapotlán del Rey","Zapotlán el Grande"];
+
+/* ===== ESPECIFICACIÓN DEL CUESTIONARIO (datos + reglas) ===== */
+
+const PARTS = [
+  { id: "p1", title: "Su institución", intro: "Primero, quién responde. Son tres datos." },
+  { id: "p2", title: "Información disponible", intro: "Ahora, qué información sobre siniestros hay en su institución. Si no está seguro, marque «No sé»." },
+  { id: "p3", title: "Qué siniestros se registran", intro: "Veamos qué siniestros llegan a su registro y cómo se enteran de ellos. Casi todo se responde con un toque." },
+  { id: "p4", title: "Cómo se registran", intro: "Ahora, con qué formatos o herramientas se registra cada siniestro." },
+  { id: "p5", title: "Qué datos incluye el registro", intro: "Siguiente, qué datos se anotan. Marque solo lo que hoy se registra." },
+  { id: "p6", title: "Dónde se guarda y cómo se mantiene", intro: "Ahora, dónde se guarda la información y cómo se mantiene al día." },
+  { id: "p7", title: "Intercambio con otras instituciones", intro: "Veamos si reciben o comparten información con otras instituciones." },
+  { id: "p8", title: "Uso de la información", intro: "Ya casi termina el contenido. Unas preguntas sobre cómo usan la información." },
+  { id: "p9", title: "Cierre y contacto", intro: "Último paso. Los comentarios son opcionales; solo los datos de contacto son necesarios." }
+];
+
+
+/* ---------- Íconos (trazo simple, 24x24) ---------- */
+const GLYPHS = {
+  car: '<path d="M3.5 16v-4.2L5.6 7h12.8l2.1 4.8V16M3.5 16h17M3.5 16v2.2h2.6V16M17.9 16v2.2h2.6V16M6 11.8h12"/>',
+  moto: '<circle cx="6" cy="16.5" r="2.8"/><circle cx="18" cy="16.5" r="2.8"/><path d="M6 16.5h5.5l3-5h3.2l.3 5M14.5 11.5l-1.2-2.5h-2.3M1.5 11h3M1 14h2"/><rect x="8.5" y="11.2" width="5" height="3" rx="1.2" fill="currentColor"/>',
+  person: '<circle cx="12" cy="5" r="2.2"/><path d="M12 8.2v6M12 10.2l-3.2 2.2M12 10.2l3.2 2.2M12 14.2l-2.6 6M12 14.2l2.6 6"/>',
+  bike: '<circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-7h5.5l2.5 7M10 9l5 7M9 7h3"/>',
+  paw: '<circle cx="6.5" cy="10" r="1.7"/><circle cx="10.5" cy="6.5" r="1.7"/><circle cx="14.5" cy="6.5" r="1.7"/><circle cx="18" cy="10" r="1.7"/><path d="M7.5 17.2c0-3 2.2-5.2 4.5-5.2s4.5 2.2 4.5 5.2c0 2-2.2 2.6-4.5 2.6s-4.5-.6-4.5-2.6z"/>',
+  phone: '<path d="M6.5 4h3l1.6 4-2 1.4a10 10 0 0 0 5.5 5.5l1.4-2 4 1.6v3a2 2 0 0 1-2 2A15 15 0 0 1 4.5 6a2 2 0 0 1 2-2z"/>',
+  eye: '<path d="M2.5 12s3.7-6 9.5-6 9.5 6 9.5 6-3.7 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/>',
+  chat: '<path d="M4 5.5h16v10H10l-5 4v-4H4z"/>',
+  button: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/>',
+  camera: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-2.5v7L16 13"/>',
+  building: '<path d="M5 20V7l7-3.5L19 7v13M3.5 20h17M9 10.5h2M13 10.5h2M9 14.5h2M13 14.5h2"/>',
+  street: '<path d="M8 20.5L10 3.5M16 20.5L14 3.5M12 5.5v2.5M12 10.5v2.5M12 15.5v3"/>',
+  shield: '<path d="M6 5h12v8.5l-6 5.5-6-5.5z"/>',
+  shield2: '<path d="M6 5h12v8.5l-6 5.5-6-5.5zM6 10h12"/>',
+  rural: '<path d="M5 20.5c7-2 1-8 7-9.5s3-5 7-7"/><circle cx="5" cy="20.5" r=".8"/><circle cx="19" cy="3.5" r=".8"/>',
+  lock: '<rect x="6" y="11" width="12" height="9" rx="1.5"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/>',
+  grid: '<path d="M4 4h6.5v6.5H4zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5z"/>',
+  pin: '<path d="M12 21s-6-5.6-6-10.2a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/><circle cx="12" cy="10.8" r="2.2"/>',
+  cloud: '<path d="M7 14.5a4 4 0 0 1 .6-7.9 5 5 0 0 1 9.4 1.6A3.2 3.2 0 0 1 17 14.5zM9 17.5l-1 2.5M13 17.5l-1 2.5M17 17.5l-1 2.5"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/>',
+  bus: '<rect x="4" y="3.5" width="16" height="13.5" rx="2"/><path d="M4 10.5h16M7.5 17v2.5M16.5 17v2.5"/><circle cx="8" cy="14" r=".9"/><circle cx="16" cy="14" r=".9"/>',
+  arrow: '<path d="M4 12h15M14 7l5 5-5 5"/>'
+};
+
+/* ---------- Listas reutilizables ---------- */
+const FREQ = [
+  { v: "siempre", l: "Siempre" },
+  { v: "casi", l: "Casi siempre" },
+  { v: "aveces", l: "A veces" },
+  { v: "nunca", l: "Nunca" },
+  { v: "dk", l: "No sé", dk: true }
+];
+
+const INST = [
+  { v: "c5", l: "911 o centro de emergencias" },
+  { v: "poliestatal", l: "Policía estatal" },
+  { v: "gn", l: "Guardia Nacional" },
+  { v: "fiscalia", l: "Fiscalía o Ministerio Público" },
+  { v: "pcb", l: "Protección Civil o bomberos" },
+  { v: "amb", l: "Cruz Roja u otros servicios de ambulancia" },
+  { v: "salud", l: "Hospitales o servicios de salud" },
+  { v: "forense", l: "Servicio médico forense" },
+  { v: "municipio", l: "Otro municipio" },
+  { v: "inegi", l: "INEGI" },
+  { v: "setran", l: "Secretaría de Transporte del Estado (SETRAN)" },
+  { v: "otra", l: "Otra(s) institución(es)", other: true, ph: "¿Cuál(es)?" }
+];
+
+const DK = { v: "dk", l: "No sé", ex: true, dk: true };
+
+const YEARS = (() => {
+  const a = [];
+  for (let y = 2026; y >= 2010; y--) a.push({ v: String(y), l: String(y) });
+  a.push({ v: "antes2010", l: "Antes de 2010" });
+  a.push({ v: "dk", l: "No sé" });
+  return a;
+})();
+
+/* ---------- Ayudas para condiciones ---------- */
+const has = (A, id, v) => Array.isArray(A[id]) && A[id].includes(v);
+const anyOf = (A, id, vs) => Array.isArray(A[id]) && A[id].some(x => vs.includes(x));
+const isOwn = A => has(A, "G1", "own");
+const isRecv = A => has(A, "G1", "recv");
+const hasInfo = A => isOwn(A) || isRecv(A);
+const hasTotals = A => has(A, "D1", "totales");
+const hasDims = A => Array.isArray(A.D1) && A.D1.some(v => v !== "totales");
+const iphUsed = A => ["siempre", "casi", "aveces"].includes(A.R1);
+const digitalStorage = A => anyOf(A, "S1", ["pcpers", "pcinst", "nube", "externo", "otrosis"]);
+const ownWord = A => (isOwn(A) ? "own" : "recv");
+
+/* ---------- Preguntas ---------- */
+/* type: fields | single | select | multi
+   sec: segundos estimados · typical: respuesta supuesta para proyectar el avance
+   rule: regla de salto en lenguaje humano (se muestra en #revision) */
+const Q = [
+  /* PARTE 1 */
+  {
+    id: "I1", part: "p1", type: "fields", sec: 40,
+    title: "¿Desde qué institución responde?",
+    help: "Si hay más de una institución en su municipio que registre siniestros, cada una puede responder por separado.",
+    fields: [
+      { k: "municipio", label: "Municipio", kind: "municipio", req: true, ph: "Escriba o elija su municipio" },
+      { k: "inst", label: "Nombre de su institución o dependencia", kind: "text", req: true, ph: "Por ejemplo, Dirección de Tránsito", ac: "organization" },
+      { k: "tipo", label: "Tipo de institución", kind: "radio", req: true, options: [
+        { v: "policia", l: "Policía o seguridad pública" },
+        { v: "transito", l: "Tránsito, vialidad o movilidad" },
+        { v: "pc", l: "Protección Civil o bomberos" },
+        { v: "medico", l: "Servicios médicos o ambulancias" },
+        { v: "obras", l: "Obras públicas o planeación" },
+        { v: "otra", l: "Otra", other: true, ph: "Escriba cuál" }
+      ] }
+    ],
+    rule: "Siempre se muestra. Si el tipo de institución es «Otra», se abre un campo para escribir cuál (obligatorio)."
+  },
+
+  /* PARTE 2 */
+  {
+    id: "G1", part: "p2", type: "multi", sec: 22,
+    title: "¿Su institución registra o recibe información sobre siniestros de tránsito?",
+    help: "Puede ir desde un conteo sencillo hasta un registro detallado de cada hecho. Marque todas las que apliquen.",
+    options: [
+      { v: "own", l: "Registramos nosotros mismos información sobre siniestros, personas lesionadas o fallecidas" },
+      { v: "recv", l: "Recibimos información de otra institución (bases de datos, reportes o cifras)" },
+      { v: "none", l: "No registramos ni recibimos información sobre siniestros", ex: true },
+      DK
+    ],
+    typical: ["own"],
+    rule: "Siempre se muestra. «No registramos…» o «No sé» van solas y llevan directo a ZA y ZB (sin pasar por las demás partes)."
+  },
+  {
+    id: "D1", part: "p2", type: "multi", sec: 16,
+    title: A => isOwn(A) ? "¿Qué tipo de información sobre los siniestros registran?" : "¿Qué tipo de información sobre los siniestros reciben?",
+    help: "Marque todo lo que incluye.",
+    options: [
+      { v: "totales", l: "Totales (por ejemplo, cuántos siniestros hubo en el mes)" },
+      { v: "detalle", l: "Información de cada siniestro (por ejemplo, fecha, lugar, vehículos y personas involucradas)" },
+      { v: "otra", l: "Otro(s) tipo(s) de información", other: true, ph: "¿Cuál(es)?" },
+      DK
+    ],
+    typical: ["detalle"],
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos». «Totales» activa T1. Cualquier respuesta distinta de solo «Totales» activa la matriz V1 (siempre con las cuatro secciones)."
+  },
+
+  {
+    id: "Y1", part: "p2", type: "select", sec: 10,
+    title: A => isOwn(A) ? "¿Desde qué año tienen registros guardados?" : "¿Desde qué año reciben esta información?",
+    help: "Un año aproximado es suficiente.",
+    ph: "Elija un año",
+    options: YEARS,
+    typical: "2020",
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos». Sin pregunta de volumen."
+  },
+
+  /* PARTE 3 — solo quien registra */
+  {
+    id: "C1", part: "p3", type: "multi", sec: 18,
+    title: "¿Qué siniestros incluye su registro, según sus consecuencias?",
+    help: "Marque todos los que sí registran.",
+    options: [
+      { v: "lesionadas", l: "Con personas lesionadas" },
+      { v: "fallecidas", l: "Con personas fallecidas" },
+      { v: "danos", l: "Solo con daños materiales" },
+      DK
+    ],
+    typical: ["lesionadas", "fallecidas", "danos"],
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos»."
+  },
+  {
+    id: "C2", part: "p3", type: "multi", sec: 30,
+    title: "¿Qué siniestros incluye su registro, según quiénes participan?",
+    help: "Marque todos los tipos que sí registran.",
+    options: [
+      { v: "mm", ic: ["car", "moto"], l: "Dos o más vehículos motorizados (por ejemplo, choque entre un automóvil y una motocicleta)" },
+      { v: "m1", ic: ["moto"], l: "Un solo vehículo motorizado (por ejemplo, derrape de una motocicleta, choque contra un objeto fijo)" },
+      { v: "pm", ic: ["person", "bus"], l: "Una persona a pie y un vehículo motorizado (por ejemplo, atropellamiento por un camión)" },
+      { v: "cm", ic: ["bike", "car"], l: "Una persona en bicicleta (o en otro vehículo no motorizado) y un vehículo motorizado" },
+      { v: "pn", ic: ["person", "bike"], l: "Una persona a pie y un vehículo no motorizado (por ejemplo, peatón atropellado por una bicicleta)" },
+      { v: "n1", ic: ["bike"], l: "Un solo vehículo no motorizado (por ejemplo, caída de un ciclista)" },
+      { v: "nn", ic: ["bike", "bike"], l: "Dos o más vehículos no motorizados (por ejemplo, choque entre dos bicicletas)" },
+      { v: "bus", ic: ["bus"], l: "Caída de una persona dentro de un vehículo de transporte público" },
+      { v: "animal", ic: ["car", "paw"], l: "Un vehículo y un animal" },
+      { v: "otro", l: "Otro(s) tipo(s) de siniestro", other: true, ph: "¿Cuál(es)?" },
+      DK
+    ],
+    typical: ["mm", "m1", "pm"],
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos»."
+  },
+  {
+    id: "C3", part: "p3", type: "multi", sec: 18,
+    title: "¿En qué tipos de vía registran siniestros?",
+    help: "Marque todos los que sí cubren.",
+    options: [
+      { v: "todas", ic: ["grid"], l: "En todas las vías del municipio (municipales, estatales y federales)", ex: true },
+      { v: "calles", ic: ["street"], l: "Calles y avenidas municipales" },
+      { v: "estatal", ic: ["shield"], l: "Carreteras o caminos estatales" },
+      { v: "federal", ic: ["shield2"], l: "Carreteras federales" },
+      { v: "rural", ic: ["rural"], l: "Caminos rurales o de terracería" },
+      { v: "privadas", ic: ["lock"], l: "Vías privadas (estacionamientos, fraccionamientos privados, etc.)" },
+      DK
+    ],
+    typical: ["calles"],
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos». «En todas las vías (municipales, estatales y federales)» excluye a las demás opciones."
+  },
+  {
+    id: "C4", part: "p3", type: "single", sec: 10,
+    title: "¿Su institución registra siniestros a cualquier hora, todos los días?",
+    options: [
+      { v: "24", l: "Sí, a cualquier hora, todos los días" },
+      { v: "parcial", l: "No, solo en ciertos horarios o días" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "24",
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos»."
+  },
+  {
+    id: "O1", part: "p3", type: "single", sec: 12,
+    title: "Cuando un siniestro en su municipio lo atiende otra institución (por ejemplo, Guardia Nacional o Policía Vial estatal), ¿ustedes lo registran?",
+    options: FREQ,
+    typical: "nunca",
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos»."
+  },
+  {
+    id: "N1", part: "p3", type: "multi", sec: 24,
+    title: "¿Cómo se enteran de que ocurrió un siniestro?",
+    help: "Marque todas las formas que usan.",
+    options: [
+      { v: "c5", ic: ["phone"], l: "Por una llamada al 911 o a otro centro de emergencias" },
+      { v: "involucrados", ic: ["person", "person"], l: "Las personas involucradas o testigos nos avisan directamente" },
+      { v: "patrullaje", ic: ["eye"], l: "Nuestro personal lo ve durante sus recorridos" },
+      { v: "redes", ic: ["chat"], l: "Por redes sociales o mensajes (por ejemplo, WhatsApp)" },
+      { v: "botones", ic: ["button"], l: "Por botones de emergencia" },
+      { v: "camaras", ic: ["camera"], l: "Por cámaras de videovigilancia" },
+      { v: "otrainst", ic: ["building"], l: "Otra institución nos avisa (por ejemplo, ambulancia, hospital, Protección Civil)" },
+      { v: "otro", l: "Otra(s) forma(s)", other: true, ph: "¿Cuál(es)?" }
+    ],
+    typical: ["c5", "involucrados"],
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos»."
+  },
+  {
+    id: "N2", part: "p3", type: "single", sec: 10,
+    title: "Cuando se enteran de un siniestro, ¿con qué frecuencia logran registrarlo en el lugar?",
+    options: FREQ,
+    typical: "casi",
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos»."
+  },
+  {
+    id: "N3", part: "p3", type: "multi", sec: 22,
+    title: "¿Por qué razones no siempre logran registrarlo en el lugar?",
+    help: "Marque las principales.",
+    options: [
+      { v: "lejos", ic: ["pin"], l: "Hay lugares lejanos o de difícil acceso" },
+      { v: "clima", ic: ["cloud"], l: "Por el mal clima" },
+      { v: "personal", ic: ["person"], l: "Falta de personal" },
+      { v: "vehiculos", ic: ["car"], l: "Falta de vehículos" },
+      { v: "horario", ic: ["clock"], l: "Ocurre fuera de nuestro horario de servicio" },
+      { v: "retiro", ic: ["arrow"], l: "Cuando llegamos, las personas o los vehículos ya se retiraron" },
+      { v: "otro", l: "Otra(s) razón(es)", other: true, ph: "¿Cuál(es)?" },
+      DK
+    ],
+    typical: ["lejos", "personal"],
+    when: A => isOwn(A) && ["casi", "aveces", "nunca"].includes(A.N2),
+    rule: "Si N2 es «Casi siempre», «A veces» o «Nunca». Si es «Siempre» o «No sé», se omite."
+  },
+
+  {
+    id: "L1", part: "p3", type: "single", sec: 12,
+    title: "Si a una persona lesionada se la llevan al hospital antes de que ustedes lleguen, ¿la incluyen en su registro?",
+    options: FREQ,
+    typical: "aveces",
+    when: A => isOwn(A) && has(A, "C1", "lesionadas"),
+    rule: "Si registran Y C1 incluye «Con personas lesionadas»."
+  },
+  {
+    id: "L2a", part: "p3", type: "single", sec: 10,
+    title: "En su registro, ¿anotan qué tan grave es la lesión de cada persona (por ejemplo, leve o grave)?",
+    options: [
+      { v: "si", l: "Sí" },
+      { v: "no", l: "No, solo anotamos que hubo personas lesionadas" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "si",
+    when: A => isOwn(A) && has(A, "C1", "lesionadas"),
+    rule: "Si registran Y C1 incluye «Con personas lesionadas»."
+  },
+  {
+    id: "L2", part: "p3", type: "multi", sec: 15,
+    title: "¿Con base en qué información anotan qué tan grave es la lesión?",
+    help: "Marque todas las que apliquen.",
+    options: [
+      { v: "personal", l: "Lo que observa nuestro personal en el lugar" },
+      { v: "paramedicos", l: "Lo que informan los paramédicos" },
+      { v: "medico", l: "Lo que informa el personal médico o el hospital" },
+      { v: "otro", l: "Otra(s) fuente(s)", other: true, ph: "¿Cuál(es)?" },
+      DK
+    ],
+    typical: ["personal"],
+    when: A => isOwn(A) && has(A, "C1", "lesionadas") && A.L2a === "si",
+    rule: "Si L2a es «Sí». Si solo anotan que hubo personas lesionadas (o no saben), se omite."
+  },
+
+  /* PARTE 4 — solo quien registra */
+  {
+    id: "R1", part: "p4", type: "single", sec: 12,
+    title: "¿Con qué frecuencia usan el Informe Policial Homologado (IPH) para registrar un siniestro?",
+        options: FREQ,
+    typical: "siempre",
+    when: A => isOwn(A) && (A.I1 || {}).tipo === "policia",
+    rule: "Si registran Y el tipo de institución (I1) es «Policía o seguridad pública». Se omite para cualquier otro tipo (tránsito, Protección Civil, servicios médicos, obras públicas, otra), y con ello R2 y R4."
+  },
+  {
+    id: "R2", part: "p4", type: "multi", sec: 16,
+    title: "Después de entregar el IPH (por ejemplo, al Ministerio Público), ¿qué conserva su institución?",
+    help: "Marque todas las que apliquen.",
+    options: [
+      { v: "papel", l: "Una copia en papel" },
+      { v: "escaneo", l: "Una copia escaneada o fotografiada" },
+      { v: "captura", l: "Los datos capturados en una hoja de cálculo o sistema" },
+      { v: "nada", l: "Nada", ex: true },
+      DK
+    ],
+    typical: ["papel"],
+    when: A => isOwn(A) && iphUsed(A),
+    rule: "Si R1 es «Siempre», «Casi siempre» o «A veces»."
+  },
+  {
+    id: "R3", part: "p4", type: "multi", sec: 24,
+    title: A => iphUsed(A)
+      ? "Además del IPH, ¿qué otros formatos o herramientas usan para registrar siniestros?"
+      : "¿Qué formatos o herramientas usan para registrar siniestros?",
+    help: "Marque todos los que usan.",
+    options: A => [
+      { v: "propioEst", l: "Un formato propio con campos definidos (ficha o formulario)" },
+      { v: "propioLib", l: "Un formato propio de texto libre (informe o parte narrativo)" },
+      { v: "mensajes", l: "Mensajes o archivos (WhatsApp, Telegram, Word u otros similares)" },
+      { v: "central", l: "Captura directa en la central, a partir de un reporte por radio o llamada (en Excel o en un sistema propio)" },
+      { v: "otro", l: "Otro(s) formato(s) o herramienta(s)", other: true, ph: "¿Cuál(es)?" },
+      { v: "ninguno", l: iphUsed(A) ? "Ningún otro formato" : "Ninguno (solo anotamos un conteo)", ex: true },
+      DK
+    ],
+    typical: ["propioEst"],
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos». El texto cambia si usan el IPH (R1)."
+  },
+  {
+    id: "R4", part: "p4", type: "single", sec: 10,
+    title: "Cuando llenan el IPH, ¿con qué frecuencia también registran el siniestro en alguno de los otros formatos que marcó?",
+    options: FREQ,
+    typical: "casi",
+    when: A => isOwn(A) && iphUsed(A) && anyOf(A, "R3", ["propioEst", "propioLib", "mensajes"]),
+    rule: "Si usan el IPH (R1) Y en R3 marcaron un formato propio estructurado, propio de texto libre o mensajes/archivos."
+  },
+  {
+    id: "R5", part: "p4", type: "single", sec: 8,
+    title: "Los formatos que usan para registrar, ¿son en papel o digitales?",
+    help: A => iphUsed(A) ? "Piense en el IPH y en sus formatos propios." : "Piense en sus formatos propios.",
+    options: [
+      { v: "papel", l: "En papel" },
+      { v: "digital", l: "Digitales (aplicación, formulario en línea o archivo en computadora)" },
+      { v: "ambos", l: "Ambos, según el caso" }
+    ],
+    typical: "ambos",
+    when: A => isOwn(A) && (iphUsed(A) || anyOf(A, "R3", ["propioEst", "propioLib"])),
+    rule: "Si usan el IPH (R1) O marcaron formato propio estructurado o de texto libre en R3."
+  },
+  {
+    id: "R6", part: "p4", type: "single", sec: 10,
+    title: "Los datos de los formatos digitales, ¿quedan guardados automáticamente en una hoja de cálculo o sistema?",
+    options: [
+      { v: "auto", l: "Sí, quedan en una hoja de cálculo o sistema" },
+      { v: "archivos", l: "No, cada formato queda como un archivo aparte (por ejemplo, Word, PDF, foto)" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "auto",
+    when: A => isOwn(A) && ["digital", "ambos"].includes(A.R5),
+    rule: "Si R5 es «Digitales» o «Ambos»."
+  },
+  {
+    id: "R7", part: "p4", type: "multi", sec: 20,
+    title: "Después de llenar el formato en papel, ¿qué hacen con la información?",
+    help: "Marque todo lo que hacen.",
+    options: [
+      { v: "hoja", l: "Se captura en una hoja de cálculo (Excel u otra)" },
+      { v: "sistema", l: "Se captura en un sistema de información" },
+      { v: "libro", l: "Se anota en un libro de registro o bitácora de papel" },
+      { v: "escaneo", l: "Se escanea o se fotografía, sin capturar los datos" },
+      { v: "archivo", l: "Se archivan los formatos en papel" },
+      { v: "otro", l: "Otra(s) cosa(s)", other: true, ph: "¿Qué?" },
+      DK
+    ],
+    typical: ["hoja"],
+    when: A => isOwn(A) && ["papel", "ambos"].includes(A.R5),
+    rule: "Si R5 es «En papel» o «Ambos»."
+  },
+  {
+    id: "R8", part: "p4", type: "single", sec: 10,
+    title: "¿Qué tan pronto se capturan los datos en la hoja de cálculo o sistema?",
+    options: [
+      { v: "inmediato", l: "Inmediatamente después de cada siniestro" },
+      { v: "dia", l: "El mismo día" },
+      { v: "semana", l: "En la misma semana" },
+      { v: "mes", l: "En el mismo mes" },
+      { v: "mas", l: "Después de un mes o más" },
+      { v: "varia", l: "Varía mucho, no hay un tiempo fijo" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "dia",
+    when: A => isOwn(A) && (anyOf(A, "R7", ["hoja", "sistema"]) || has(A, "R2", "captura")),
+    rule: "Si R7 incluye hoja de cálculo o sistema, O si R2 incluye «datos capturados». Los formatos digitales que se guardan solos (R6) no pasan por aquí."
+  },
+
+  {
+    id: "R9", part: "p4", type: "fields", sec: 15, optional: true,
+    title: "¿Cómo se llama el formato o sistema que usan para registrar?",
+    help: "Opcional. Por ejemplo, el título del formato o el nombre del programa.",
+    fields: [{ k: "nombre", label: "Nombre del formato o sistema", kind: "text", req: false, ph: "Escriba el nombre" }],
+    typical: {},
+    when: A => isOwn(A),
+    rule: "Si G1 incluye «registramos nosotros mismos». Respuesta opcional."
+  },
+
+  /* PARTE 5 */
+  {
+    id: "T1", part: "p5", type: "multi", sec: 18,
+    title: A => isOwn(A) ? "¿Qué totales llevan?" : "¿Qué totales incluye la información que reciben?",
+    help: "Marque todos los que apliquen.",
+    options: [
+      { v: "siniestros", l: "Total de siniestros" },
+      { v: "lesionadas", l: "Total de personas lesionadas" },
+      { v: "fallecidas", l: "Total de personas fallecidas" },
+      { v: "usuario", l: "Totales por tipo de persona (peatones, ciclistas, motociclistas, etc.)" },
+      { v: "zona", l: "Totales por zona, colonia o calle" },
+      { v: "otro", l: "Otro(s) total(es)", other: true, ph: "¿Cuál(es)?" },
+      DK
+    ],
+    typical: ["siniestros"],
+    when: A => hasInfo(A) && hasTotals(A),
+    rule: "Si D1 incluye «Totales»."
+  },
+  {
+    id: "V1", part: "p5", type: "groups", sec: 60,
+    title: A => isOwn(A) ? "¿Qué información registran?" : "¿Qué información incluye lo que reciben?",
+    help: A => isOwn(A) && isRecv(A) ? "Piense en el registro que lleva su propia institución. Marque todo lo que aplique en cada sección." : "Marque todo lo que aplique en cada sección.",
+    groups: A => [
+      { k: "siniestro", title: "Siniestros", options: [
+        { v: "fecha", l: "Fecha" },
+        { v: "hora", l: "Hora" },
+        { v: "tipo", l: "Tipo de siniestro (por ejemplo, atropellamiento, choque, volcadura)" },
+        { v: "direccion", l: "Dirección o cruce de calles (colonia, calle, número o referencia)" },
+        { v: "coord", l: "Coordenadas (latitud y longitud)" },
+        { v: "clima", l: "Condiciones del clima" },
+        { v: "luz", l: "Condiciones de iluminación" },
+        { v: "causa", l: "Causa o posible causa (por ejemplo, exceso de velocidad)" },
+        { v: "narrativa", l: "Descripción de lo ocurrido en texto libre (narrativa)" },
+        { v: "otro", l: "Otro(s) dato(s)", other: true, ph: "¿Cuál(es)?" },
+        { v: "ninguno", l: "Ninguno de estos", ex: true }, DK ] },
+      { k: "via", title: "Vías", options: [
+        { v: "tipoVia", l: "Tipo de vía (por ejemplo, primaria, secundaria, colectora)" },
+        { v: "interseccion", l: "Tipo de intersección (por ejemplo, en T, en cruz)" },
+        { v: "superficie", l: "Condiciones de la superficie (por ejemplo, seca, mojada, inundada)" },
+        { v: "otro", l: "Otro(s) dato(s)", other: true, ph: "¿Cuál(es)?" },
+        { v: "ninguno", l: "Ninguno de estos", ex: true }, DK ] },
+      { k: "vehiculos", title: "Vehículos", options: [
+        { v: "numveh", l: "Número de vehículos involucrados" },
+        { v: "tipoveh", l: "Tipo de vehículo (por ejemplo, automóvil, motocicleta, bicicleta)" },
+        { v: "marca", l: "Marca" },
+        { v: "submarca", l: "Submarca (por ejemplo, Versa, Aveo)" },
+        { v: "modelo", l: "Modelo (año del vehículo)" },
+        { v: "otro", l: "Otro(s) dato(s)", other: true, ph: "¿Cuál(es)?" },
+        { v: "ninguno", l: "Ninguno de estos", ex: true }, DK ] },
+      { k: "personas", title: "Víctimas", options: [
+        { v: "nles", l: "Número de personas lesionadas" },
+        { v: "nfal", l: "Número de personas fallecidas" },
+        { v: "sexo", l: "Sexo" },
+        { v: "edad", l: "Edad" },
+        { v: "usuario", l: "Tipo de usuario (por ejemplo, conductor, pasajero, peatón)" },
+        { v: "gravedad", l: "Gravedad de la lesión (por ejemplo, fatal, no fatal)" },
+        { v: "proteccion", l: "Uso de casco o cinturón de seguridad" },
+        { v: "alcohol", l: "Sospecha o prueba de alcohol" },
+        { v: "drogas", l: "Sospecha o prueba de drogas" },
+        { v: "traslado", l: "Traslado o atención médica (por ejemplo, ambulancia, hospital)" },
+        { v: "sinles", l: "Datos de otras personas involucradas, sin lesiones" },
+        { v: "identif", l: "Nombre, domicilio u otro dato que identifique a la persona" },
+        { v: "otro", l: "Otro(s) dato(s)", other: true, ph: "¿Cuál(es)?" },
+        { v: "ninguno", l: "Ninguno de estos", ex: true }, DK ] }
+    ],
+    typical: { siniestro: ["fecha", "hora", "tipo", "direccion"], via: ["tipoVia"], vehiculos: ["numveh", "tipoveh"], personas: ["nles", "nfal", "sexo", "edad", "usuario"] },
+    when: A => hasInfo(A) && hasDims(A),
+    rule: "Si D1 incluye algo distinto de solo «Totales». Una sola pantalla (matriz) con las cuatro secciones siempre visibles (Siniestros, Vías, Vehículos, Víctimas), como en el borrador."
+  },
+
+  /* PARTE 6 */
+  {
+    id: "S1", part: "p6", type: "multi", sec: 22,
+    title: A => isOwn(A) ? "¿Dónde se guarda la información?" : "¿Dónde guardan la información que reciben?",
+    help: "Marque todos los lugares donde se guarda.",
+    options: [
+      { v: "papel", l: "Archivos físicos o expedientes de papel" },
+      { v: "pcpers", l: "Computadora personal de alguien del equipo" },
+      { v: "pcinst", l: "Computadora o servidor de la institución" },
+      { v: "nube", l: "En la nube (por ejemplo, Google Drive, OneDrive)" },
+      { v: "externo", l: "Dispositivos externos (por ejemplo, memoria USB, disco duro)" },
+      { v: "otrosis", l: "En un sistema de otra institución (por ejemplo, del gobierno estatal)" },
+      { v: "otro", l: "Otro(s) lugar(es)", other: true, ph: "¿Cuál(es)?" },
+      { v: "nada", l: "No se guarda", ex: true },
+      DK
+    ],
+    typical: ["pcinst"],
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos»."
+  },
+  {
+    id: "S2", part: "p6", type: "single", sec: 10,
+    title: "Además del lugar donde se guarda normalmente, ¿hacen copias de respaldo?",
+    options: [
+      { v: "auto", l: "Sí, de forma automática" },
+      { v: "manual", l: "Sí, de forma manual (por ejemplo, copiar a una memoria USB o a la nube)" },
+      { v: "no", l: "No" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "manual",
+    when: A => hasInfo(A) && digitalStorage(A),
+    rule: "Si S1 incluye al menos un lugar digital (computadora, nube, dispositivo externo o sistema de otra institución). Si solo hay papel o «No se guarda», se omite."
+  },
+  {
+    id: "S3", part: "p6", type: "single", sec: 22,
+    title: "Pensando en la hoja de cálculo, el sistema o los archivos digitales, ¿cómo está organizada la información?",
+    options: [
+      { v: "fila_siniestro", l: "Una fila por siniestro, con una columna para cada dato (fecha, hora, calle, etc.)" },
+      { v: "fila_persona", l: "Una fila por persona lesionada o fallecida, con una columna para cada dato" },
+      { v: "texto", l: "Un texto libre que describe cada siniestro, sin columnas separadas por dato" },
+      { v: "mixto", l: "Una mezcla: algunas columnas y también un texto libre" },
+      { v: "tablas", l: "Varias tablas relacionadas (por ejemplo, una de siniestros, otra de vehículos y otra de víctimas)" },
+      { v: "archivos", l: "Un archivo aparte por siniestro (por ejemplo, Word, PDF, foto)" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "fila_siniestro",
+    when: A => hasInfo(A) && digitalStorage(A) && hasDims(A),
+    rule: "Si S1 incluye un lugar digital Y D1 incluye algo distinto de solo «Totales»."
+  },
+  {
+    id: "S4", part: "p6", type: "single", sec: 10,
+    title: "Si una persona lesionada fallece días o semanas después del siniestro, ¿con qué frecuencia se enteran?",
+    help: "Por ejemplo, cuando fallece en el hospital.",
+    options: FREQ,
+    typical: "aveces",
+    when: A => isOwn(A) && has(A, "C1", "lesionadas") && hasDims(A),
+    rule: "Si registran, C1 incluye «Con personas lesionadas» Y D1 incluye algo distinto de solo «Totales»."
+  },
+  {
+    id: "S5", part: "p6", type: "single", sec: 10,
+    title: "Cuando se enteran, ¿con qué frecuencia actualizan el registro de esa persona?",
+    help: "Por ejemplo, cambiar su registro de lesionada a fallecida.",
+    options: FREQ,
+    typical: "aveces",
+    when: A => ["siempre", "casi", "aveces"].includes(A.S4),
+    rule: "Si S4 es Siempre, Casi siempre o A veces. Si no se enteran (Nunca o No sé), se omite."
+  },
+
+  /* PARTE 7 */
+  {
+    id: "X1", part: "p7", type: "multi", sec: 24,
+    title: "¿De cuáles instituciones reciben información sobre siniestros?",
+    help: "Marque todas.",
+    options: INST,
+    typical: ["fiscalia"],
+    when: A => isRecv(A),
+    rule: "Si G1 incluye «recibimos información de otra institución»."
+  },
+  {
+    id: "X2", part: "p7", type: "multi", sec: 18,
+    title: "¿En qué forma la reciben?",
+    help: "Marque todas las que apliquen.",
+    options: [
+      { v: "copias", l: "Copias y/u originales de los formatos o informes (por ejemplo, IPH)" },
+      { v: "base", l: "Una base de datos (por ejemplo, hoja de cálculo)" },
+      { v: "acceso", l: "Acceso directo a su sistema" },
+      { v: "resumen", l: "Cifras o reportes resumidos" },
+      { v: "otro", l: "Otra(s) forma(s)", other: true, ph: "¿Cuál(es)?" },
+      DK
+    ],
+    typical: ["base"],
+    when: A => isRecv(A),
+    rule: "Si G1 incluye «recibimos información de otra institución»."
+  },
+  {
+    id: "X4", part: "p7", type: "single", sec: 12,
+    title: "¿Tienen una forma de identificar siniestros que llegan repetidos? Por ejemplo, el mismo siniestro registrado por dos instituciones.",
+    options: [
+      { v: "si", l: "Sí" },
+      { v: "no", l: "No" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "no",
+    when: A => isRecv(A) && Array.isArray(A.X1) && A.X1.length >= 2,
+    rule: "Solo si reciben información de 2 o más instituciones (X1)."
+  },
+  {
+    id: "X5", part: "p7", type: "single", sec: 14,
+    title: "Cuando encuentran un siniestro repetido, ¿qué hacen?",
+    options: [
+      { v: "uno", l: "Se conserva un solo registro y se elimina el repetido" },
+      { v: "combinar", l: "Se combinan los datos de los registros repetidos" },
+      { v: "caso", l: "Se revisa caso por caso" },
+      { v: "otro", l: "Otra cosa", other: true, ph: "¿Qué?" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "uno",
+    when: A => A.X4 === "si" && isRecv(A) && Array.isArray(A.X1) && A.X1.length >= 2,
+    rule: "Si X4 es «Sí»."
+  },
+  {
+    id: "X6", part: "p7", type: "single", sec: 10,
+    title: "¿Su institución comparte información sobre siniestros con otras instituciones?",
+    options: [
+      { v: "regular", l: "Sí, de forma regular" },
+      { v: "solicitud", l: "Sí, solo cuando la solicitan" },
+      { v: "no", l: "No" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "no",
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos» (también aplica a quien solo recibe y reenvía)."
+  },
+  {
+    id: "X7", part: "p7", type: "multi", sec: 24,
+    title: "¿Con cuáles instituciones la comparten?",
+    help: "Marque todas.",
+    options: INST,
+    typical: ["fiscalia"],
+    when: A => hasInfo(A) && ["regular", "solicitud"].includes(A.X6),
+    rule: "Si X6 es «Sí, de forma regular» o «Sí, solo cuando la solicitan»."
+  },
+  {
+    id: "X8", part: "p7", type: "multi", sec: 18,
+    title: "¿Qué comparten?",
+    help: "Marque todo lo que comparten.",
+    options: [
+      { v: "copias", l: "Copias y/u originales de los formatos o informes (por ejemplo, IPH)" },
+      { v: "base", l: "La base de datos (por ejemplo, hoja de cálculo)" },
+      { v: "acceso", l: "Acceso directo al sistema" },
+      { v: "resumen", l: "Solo cifras o estadísticas resumidas" },
+      { v: "analisis", l: "Reportes o análisis que elabora su institución" },
+      { v: "otro", l: "Otra(s) cosa(s)", other: true, ph: "¿Qué?" },
+      DK
+    ],
+    typical: ["resumen"],
+    when: A => hasInfo(A) && ["regular", "solicitud"].includes(A.X6),
+    rule: "Si X6 es «Sí…» (misma condición que X7)."
+  },
+
+  /* PARTE 8 */
+  {
+    id: "U1", part: "p8", type: "multi", sec: 30,
+    title: "¿Para qué usan la información sobre siniestros que su institución registra o recibe?",
+    help: "Marque todo lo que aplique.",
+    options: [
+      { v: "tendencias", l: "Ver cómo cambian los siniestros, lesiones y muertes con el tiempo (por ejemplo, por mes o año)" },
+      { v: "usuarios", l: "Identificar qué personas resultan más afectadas según cómo se trasladan (peatones, ciclistas, motociclistas, etc.)" },
+      { v: "edadsexo", l: "Identificar qué personas resultan más afectadas según edad y sexo" },
+      { v: "lugares", l: "Identificar los lugares con más siniestros" },
+      { v: "reportes", l: "Elaborar reportes" },
+      { v: "acciones", l: "Planear acciones (por ejemplo, operativos, señalización u obras)" },
+      { v: "solicitudes", l: "Responder solicitudes de información" },
+      { v: "otro", l: "Otro(s) uso(s)", other: true, ph: "¿Cuál(es)?" },
+      { v: "solo", l: "Solo la guardamos; no la usamos para análisis", ex: true }
+    ],
+    typical: ["tendencias", "lugares"],
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos»."
+  },
+  {
+    id: "U2", part: "p8", type: "single", sec: 10,
+    title: "Cuando analizan la información, ¿qué siniestros incluyen?",
+    options: [
+      { v: "solo", l: "Solo siniestros con personas lesionadas o fallecidas" },
+      { v: "todos", l: "Los anteriores y también los siniestros con solo daños materiales" },
+      { v: "dk", l: "No sé", dk: true }
+    ],
+    typical: "todos",
+    when: A => isOwn(A) && has(A, "C1", "danos") && !has(A, "U1", "solo"),
+    rule: "Si registran, C1 incluye siniestros con solo daños materiales Y U1 no es «Solo la guardamos»."
+  },
+  {
+    id: "U3", part: "p8", type: "multi", sec: 22, max: 3,
+    title: "Para mejorar el registro y el uso de la información sobre siniestros, ¿qué sería lo más útil?",
+    help: "Elija hasta 3.",
+    options: [
+      { v: "capacitacion", l: "Capacitación para el personal" },
+      { v: "equipo", l: "Equipo de cómputo o internet" },
+      { v: "formato", l: "Un formato o sistema de registro más sencillo" },
+      { v: "analisis", l: "Apoyo para analizar la información" },
+      { v: "acuerdos", l: "Acuerdos para compartir información entre instituciones" },
+      { v: "personal", l: "Más personal para el registro" },
+      { v: "otro", l: "Otra(s) cosa(s)", other: true, ph: "¿Qué?" },
+      { v: "ninguna", l: "Por ahora, ninguna", ex: true }
+    ],
+    typical: ["formato"],
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos». Máximo 3 opciones."
+  },
+
+  /* PARTE 9 */
+  {
+    id: "ZA", part: "p9", type: "fields", sec: 28, optional: true,
+    title: A => hasInfo(A) ? "Antes de terminar" : "Una última pregunta",
+    help: "Ambas respuestas son opcionales.",
+    fields: A => {
+      const f = [{ k: "ref", label: hasInfo(A)
+        ? "¿Qué otra institución o área de su municipio registra información sobre siniestros?"
+        : "Si conoce una institución o área de su municipio que sí registre información sobre siniestros, indíquela", kind: "textarea", req: false, ph: "Nombre de la institución o área" }];
+      if (hasInfo(A)) f.push({ k: "coment", label: "¿Quiere agregar algo sobre cómo se registran los siniestros en su institución?", kind: "textarea", req: false, ph: "Escriba aquí" });
+      return f;
+    },
+    typical: {},
+    rule: "Siempre se muestra. El segundo campo solo aparece si G1 incluye «registramos» o «recibimos»."
+  },
+  {
+    id: "Z2", part: "p9", type: "multi", sec: 14,
+    title: "Para conocer mejor sus registros, ¿qué le resultaría más práctico?",
+    help: "Marque todo lo que le sirva.",
+    options: [
+      { v: "llamada", l: "Una llamada breve" },
+      { v: "reunion", l: "Una reunión virtual" },
+      { v: "ejemplo", l: "Compartir un ejemplo de su formato o base, sin datos personales" },
+      { v: "visita", l: "Una visita a su institución" },
+      { v: "correo", l: "Que me escriban por correo" },
+      { v: "ninguna", l: "Por ahora, ninguna", ex: true }
+    ],
+    typical: ["llamada"],
+    when: A => hasInfo(A),
+    rule: "Si G1 incluye «registramos» o «recibimos»."
+  },
+  {
+    id: "ZB", part: "p9", type: "fields", sec: 45,
+    title: "Datos para dar seguimiento",
+    help: "Usaremos estos datos solo para dar seguimiento a este diagnóstico.",
+    fields: [
+      { k: "nombre", label: "Nombre de quien responde", kind: "text", req: true, ph: "Nombre y apellidos", ac: "name" },
+      { k: "cargo", label: "Cargo", kind: "text", req: true, ph: "Por ejemplo, Jefe de Tránsito", ac: "organization-title" },
+      { k: "correo", label: "Correo electrónico institucional", kind: "email", req: true, ph: "nombre@municipio.gob.mx", ac: "email" },
+      { k: "tel", label: "Teléfono de contacto (opcional)", kind: "tel", req: false, ph: "10 dígitos", ac: "tel" }
+    ],
+    typical: {},
+    rule: "Siempre se muestra. El teléfono es opcional."
+  }
+];
+
+const QBYID = Object.fromEntries(Q.map(q => [q.id, q]));
+const PBYID = Object.fromEntries(PARTS.map(p => [p.id, p]));
+const PART_OVERHEAD = 5;   // segundos por parte (leer la transición)
+const START_OVERHEAD = 20; // segundos de la pantalla de inicio
+
+/* ---------- Motor de rutas ---------- */
+function resolve(x, A) { return typeof x === "function" ? x(A) : x; }
+
+/* Devuelve la lista de ids visibles en orden. Las respuestas ya dadas pesan;
+   las que faltan se suponen típicas (solo para proyectar tiempo y avance). */
+function buildRoute(ans, project) {
+  const A = {};
+  const route = [];
+  for (const q of Q) {
+    if (q.when && !q.when(A)) continue;
+    route.push(q.id);
+    let v = ans[q.id];
+    if (v === undefined && project) v = q.typical;
+    if (v !== undefined) A[q.id] = v;
+  }
+  return route;
+}
+
+function routeSeconds(route) {
+  const parts = new Set();
+  let s = START_OVERHEAD;
+  for (const id of route) { s += QBYID[id].sec; parts.add(QBYID[id].part); }
+  return s + parts.size * PART_OVERHEAD;
+}
+
+/* Contexto de respuestas visibles hasta una pregunta (para textos dinámicos) */
+function contextFor(ans, upToId) {
+  const A = {};
+  for (const q of Q) {
+    if (q.id === upToId) break;
+    if (q.when && !q.when(A)) continue;
+    if (ans[q.id] !== undefined) A[q.id] = ans[q.id];
+  }
+  return A;
+}
+
+// export node:  = 
+
+/* ===== INTERFAZ ===== */
+const PROTOTYPE = true;               // pasar a false al publicar la versión final
+const STORE_KEY = "dx_municipal_siniestros_v1";
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let state = { ans: {}, txt: {}, notes: {}, hist: [], cur: "start", maxPct: 0, m50: false, m80: false };
+let downloadsApi = null;
+
+/* ---------- Persistencia (solo en este dispositivo) ---------- */
+function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ } }
+function restore() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s && s.ans ? s : null;
+  } catch (e) { return null; }
+}
+function clearSaved() { try { localStorage.removeItem(STORE_KEY); } catch (e) { /* nada */ } }
+
+/* ---------- Ayudas ---------- */
+const ctx = id => contextFor(state.ans, id);
+const optsOf = (q, A) => resolve(q.options, A || ctx(q.id)) || [];
+const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function progressInfo() {
+  const route = buildRoute(state.ans, true);
+  const total = routeSeconds(route);
+  const idx = route.indexOf(state.cur);
+  let before = 0;
+  if (state.cur === "end") before = total;
+  else if (idx > 0) {
+    const seen = new Set();
+    before = START_OVERHEAD;
+    for (let i = 0; i < idx; i++) { before += QBYID[route[i]].sec; seen.add(QBYID[route[i]].part); }
+    before += seen.size * PART_OVERHEAD;
+  } else before = START_OVERHEAD;
+  const pct = Math.min(1, before / total);
+  state.maxPct = Math.max(state.maxPct || 0, pct);
+  const parts = [];
+  route.forEach(id => { const p = QBYID[id].part; if (!parts.includes(p)) parts.push(p); });
+  const curPart = state.cur === "end" ? parts[parts.length - 1] : (QBYID[state.cur] || {}).part;
+  return { route, total, remaining: Math.max(0, total - before), partIdx: parts.indexOf(curPart) + 1, partTotal: parts.length, partId: curPart, parts };
+}
+
+function renderTop() {
+  const bar = $("#topbar");
+  if (state.cur === "start" || state.cur === "review") { bar.hidden = true; return; }
+  bar.hidden = false;
+  const pi = progressInfo();
+  $("#tb-title").textContent = state.cur === "end" ? "Cuestionario completo" : PBYID[pi.partId].title;
+  $("#tb-part").textContent = state.cur === "end" ? "Gracias" : "Parte " + pi.partIdx + " de " + pi.partTotal;
+  let t;
+  if (state.cur === "end") t = "Listo";
+  else if (state.cur === pi.route[pi.route.length - 1]) t = "Última pantalla";
+  else if (pi.remaining < 75) t = "Falta menos de 1 min";
+  else t = "Faltan unos " + Math.round(pi.remaining / 60) + " min";
+  $("#tb-time").textContent = t;
+  const pct = state.cur === "end" ? 100 : Math.round(state.maxPct * 100);
+  $("#fill").style.width = pct + "%";
+  $("#road").setAttribute("aria-valuenow", String(pct));
+}
+
+/* ---------- Navegación ---------- */
+function go(id, back) {
+  state.cur = id;
+  if (id !== "start") persist();   // la pantalla de inicio no debe borrar el avance guardado
+  if (id === "start") renderStart();
+  else if (id === "end") renderEnd();
+  else renderQuestion(QBYID[id]);
+  renderTop();
+  const bar = $("#actions");
+  bar.hidden = (id === "start" || id === "end" || id === "review");
+  if (id !== "start" && id !== "end") {
+    $("#btn-next").textContent = (progressInfo().route.slice(-1)[0] === id) ? "Terminar" : "Siguiente";
+  }
+  renderNotes();
+  window.scrollTo(0, 0);
+  const h = document.querySelector("[data-focus]");
+  if (h) h.focus({ preventScroll: true });
+}
+
+function next() {
+  const q = QBYID[state.cur];
+  if (!validate(q)) return;
+  const route = buildRoute(state.ans, true);
+  const i = route.indexOf(q.id);
+  state.hist.push(q.id);
+  go(route[i + 1] || "end");
+}
+function back() {
+  if (state.hist.length) go(state.hist.pop(), true);
+  else go("start", true);
+}
+
+/* ---------- Libreta de notas (una por parte) ---------- */
+function renderNotes() {
+  const aside = $("#notes"), fab = $("#notes-open");
+  const q = QBYID[state.cur];
+  if (!q) { aside.hidden = true; fab.hidden = true; aside.classList.remove("open"); return; }
+  state.notes = state.notes || {};
+  $("#nb-title").textContent = "Notas: " + PBYID[q.part].title;
+  $("#nb-hint").textContent = "Cada parte tiene su propia libreta.";
+  const ta = $("#nb-text");
+  ta.dataset.part = q.part;
+  ta.value = state.notes[q.part] || "";
+  aside.hidden = false; fab.hidden = false;
+  fab.setAttribute("aria-expanded", String(aside.classList.contains("open")));
+}
+function toggleNotes(open) {
+  const aside = $("#notes");
+  aside.classList.toggle("open", open);
+  $("#notes-open").setAttribute("aria-expanded", String(open));
+  if (open) $("#nb-text").focus({ preventScroll: true });
+}
+
+async function copyNotes() {
+  const st = $("#nb-status"), txt = buildCsv().replace("\uFEFF", "");
+  try { await navigator.clipboard.writeText(txt); st.textContent = "CSV copiado. Péguelo en el chat."; return; } catch (e) { /* alterno */ }
+  try {
+    const ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); document.body.removeChild(ta);
+    st.textContent = ok ? "CSV copiado. Péguelo en el chat." : "No se pudo copiar en este dispositivo.";
+  } catch (e) { st.textContent = "No se pudo copiar en este dispositivo."; }
+}
+async function downloadFromNotes() {
+  const st = $("#nb-status");
+  try { await downloadsApi.save({ filename: "respuestas_y_notas_dx_municipal.csv", data: buildCsv() }); st.textContent = "Archivo guardado."; }
+  catch (e) { st.textContent = (e && e.code === "declined") ? "No se guardó el archivo." : "No se pudo guardar. Pruebe con «Copiar CSV con notas»."; }
+}
+
+/* ---------- Pantalla de inicio ---------- */
+function renderStart() {
+  const saved = restore();
+  const hasSaved = saved && saved.cur && saved.cur !== "start" && saved.cur !== "end" && Object.keys(saved.ans).length;
+  $("#screen").innerHTML =
+    (PROTOTYPE ? '<div class="banner">Versión de prueba para revisión. Las respuestas no se envían a nadie; se guardan solo en este dispositivo. <a href="#revision">Ver reglas de salto</a></div>' : "") +
+    '<h1 data-focus tabindex="-1">Diagnóstico municipal de registros de siniestros de tránsito</h1>' +
+    '<p class="lead">Queremos conocer cómo registra y guarda su institución la información sobre siniestros de tránsito. No es una evaluación. No necesita tener sistemas informáticos ni bases de datos para responder.</p>' +
+    '<dl class="facts">' +
+    '<div><dt>Entre 3 y 15 minutos</dt><dd>Depende de lo que registre su institución. Si no registra nada, son menos de 3.</dd></div>' +
+    '<div><dt>Desde su celular</dt><dd>Sus respuestas se guardan mientras avanza. Puede dejarlo y retomarlo después.</dd></div>' +
+    '<div><dt>Sin datos de personas</dt><dd>Este cuestionario no pide nombres ni datos de quienes se vieron involucrados en un siniestro.</dd></div>' +
+    '</dl>' +
+    (hasSaved
+      ? '<div class="stack"><button class="btn primary block" id="btn-resume">Continuar donde me quedé</button><button class="btn quiet block" id="btn-restart">Empezar de nuevo</button></div>'
+      : '<button class="btn primary block" id="btn-start">Comenzar</button>');
+}
+
+/* ---------- Pantalla de pregunta ---------- */
+function transitionHTML(q, pi) {
+  const first = pi.route.find(id => QBYID[id].part === q.part);
+  if (first !== q.id) return "";
+  let pre = "";
+  if (state.maxPct >= 0.5 && !state.m50) { pre = "Ya va por la mitad. "; state.m50 = true; }
+  else if (state.maxPct >= 0.8 && !state.m80) { pre = "Casi termina. "; state.m80 = true; }
+  return '<div class="trans">' + esc(pre + PBYID[q.part].intro) + "</div>";
+}
+
+function renderQuestion(q) {
+  const A = ctx(q.id);
+  const pi = progressInfo();
+  const title = resolve(q.title, A), help = resolve(q.help, A);
+  let body = "";
+  if (q.type === "fields") body = fieldsHTML(q, A);
+  else if (q.type === "groups") body = groupsHTML(q, A);
+  else if (q.type === "select") {
+    const cur = state.ans[q.id] || "";
+    body = '<div class="f"><label class="sr" for="sel">' + esc(title) + '</label><select class="in" id="sel" data-qid="' + q.id + '"><option value="">' + esc(q.ph || "Elija una opción") + "</option>" +
+      optsOf(q, A).map(o => '<option value="' + esc(o.v) + '"' + (cur === o.v ? " selected" : "") + ">" + esc(o.l) + "</option>").join("") + "</select></div>";
+  } else {
+    const os = optsOf(q, A), anyIc = os.some(o => o.ic), wide = os.some(o => o.ic && o.ic.length > 1);
+    body = '<fieldset' + (anyIc ? ' style="--icw:' + (wide ? 56 : 28) + 'px"' : "") + '><legend class="sr">' + esc(title) + "</legend>" + os.map(o => optionHTML(q, o, anyIc)).join("") + "</fieldset>" +
+      (q.max ? '<p class="count" id="count" aria-live="polite"></p>' : "");
+  }
+  $("#screen").innerHTML = transitionHTML(q, pi) +
+    '<h2 class="qt" id="qt" data-focus tabindex="-1">' + esc(title) + "</h2>" +
+    (help ? '<p class="help">' + esc(help) + "</p>" : "") +
+    '<div class="err" id="err" role="alert" hidden></div>' + body;
+  if (q.type === "multi" || q.type === "single") syncOptions(q);
+  if (q.type === "groups") syncGroups(q);
+}
+
+/* ---------- Pregunta con secciones (una lista de opciones por sección) ---------- */
+function groupsHTML(q, A) {
+  return resolve(q.groups, A).map(g =>
+    '<fieldset class="grp" data-g="' + g.k + '"><legend class="grp-t">' + esc(g.title) + "</legend>" +
+    g.options.map(o => {
+      const txt = ((state.txt[q.id] || {})[g.k + ":" + o.v]) || "";
+      return '<div class="optw' + (o.dk ? " dkw" : "") + '" data-gw="' + g.k + '" data-ow="' + esc(o.v) + '">' +
+        '<label class="opt check' + (o.dk ? " dk" : "") + '"><input type="checkbox" value="' + esc(o.v) + '" data-gq="' + q.id + '" data-gk="' + g.k + '"><span class="mark">' + CHECK + '</span><span class="lbl">' + esc(o.l) + "</span></label>" +
+        (o.other ? '<div class="other-row" hidden><input class="in" type="text" data-other="' + esc(o.v) + '" data-gq="' + q.id + '" data-gk="' + g.k + '" placeholder="' + esc(o.ph || "Escriba aquí") + '" value="' + esc(txt) + '" aria-label="' + esc(g.title + ": " + o.l) + '"></div>' : "") +
+        "</div>";
+    }).join("") + "</fieldset>").join("");
+}
+function syncGroups(q) {
+  const cur = state.ans[q.id] || {};
+  document.querySelectorAll("[data-gw]").forEach(w => {
+    const gk = w.getAttribute("data-gw"), v = w.getAttribute("data-ow");
+    const on = (cur[gk] || []).includes(v);
+    w.querySelector("input[type=checkbox]").checked = on;
+    w.querySelector(".opt").classList.toggle("sel", on);
+    const r = w.querySelector(".other-row"); if (r) r.hidden = !on;
+  });
+}
+function onGroupChange(input) {
+  const q = QBYID[input.getAttribute("data-gq")], gk = input.getAttribute("data-gk"), v = input.value;
+  const g = resolve(q.groups, ctx(q.id)).find(x => x.k === gk);
+  const o = g.options.find(x => x.v === v);
+  const ans = state.ans[q.id] = state.ans[q.id] || {};
+  let cur = (ans[gk] || []).slice();
+  if (input.checked) {
+    if (o.ex) cur = [v];
+    else { const exv = g.options.filter(x => x.ex).map(x => x.v); cur = cur.filter(x => !exv.includes(x)); cur.push(v); }
+  } else cur = cur.filter(x => x !== v);
+  ans[gk] = cur;
+  const t = state.txt[q.id] || {};
+  Object.keys(t).forEach(k => { if (k.indexOf(gk + ":") === 0 && !cur.includes(k.slice(gk.length + 1))) delete t[k]; });
+  hideError(); syncGroups(q); persist(); renderTop();
+  if (o.other && input.checked) { const f = document.querySelector('[data-other="' + v + '"][data-gk="' + gk + '"]'); if (f) f.focus(); }
+}
+
+function svgIcon(g) { return '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + GLYPHS[g] + "</svg>"; }
+function optionHTML(q, o, anyIc) {
+  const kind = q.type === "multi" ? "check" : "radio";
+  const type = q.type === "multi" ? "checkbox" : "radio";
+  const txt = ((state.txt[q.id] || {})[o.v]) || "";
+  return '<div class="optw' + (o.dk ? " dkw" : "") + '" data-ow="' + esc(o.v) + '">' +
+    '<label class="opt ' + kind + (o.dk ? " dk" : "") + '"><input type="' + type + '" name="' + q.id + '" value="' + esc(o.v) + '" data-qid="' + q.id + '">' +
+    '<span class="mark">' + (kind === "check" ? CHECK : "") + "</span>" + (anyIc ? '<span class="ic" aria-hidden="true">' + (o.ic || []).map(svgIcon).join("") + "</span>" : "") + '<span class="lbl">' + esc(o.l) + "</span></label>" +
+    (o.other ? '<div class="other-row" hidden><input class="in" type="text" data-other="' + esc(o.v) + '" data-qid="' + q.id + '" placeholder="' + esc(o.ph || "Escriba aquí") + '" value="' + esc(txt) + '" aria-label="' + esc(o.l) + '"></div>' : "") +
+    "</div>";
+}
+
+function selectedOf(q) {
+  const v = state.ans[q.id];
+  if (q.type === "multi") return Array.isArray(v) ? v : [];
+  return v === undefined ? [] : [v];
+}
+
+function syncOptions(q) {
+  const sel = selectedOf(q);
+  const full = q.max && sel.length >= q.max;
+  document.querySelectorAll('.optw').forEach(w => {
+    const v = w.getAttribute("data-ow");
+    const input = w.querySelector("input[type=checkbox],input[type=radio]");
+    const label = w.querySelector(".opt");
+    const on = sel.includes(v);
+    input.checked = on;
+    label.classList.toggle("sel", on);
+    const off = !!(full && !on && q.type === "multi");
+    input.disabled = off; label.classList.toggle("off", off);
+    const row = w.querySelector(".other-row");
+    if (row) row.hidden = !on;
+  });
+  const c = $("#count");
+  if (c) c.textContent = "Ha elegido " + sel.length + " de " + q.max + ".";
+}
+
+function onOptionChange(input) {
+  const q = QBYID[input.getAttribute("data-qid")];
+  const v = input.value;
+  const o = optsOf(q).find(x => x.v === v);
+  if (q.type === "multi") {
+    let cur = selectedOf(q).slice();
+    if (input.checked) {
+      if (o.ex) { cur = [v]; }
+      else {
+        const exv = optsOf(q).filter(x => x.ex).map(x => x.v);
+        cur = cur.filter(x => !exv.includes(x));
+        cur.push(v);
+      }
+    } else cur = cur.filter(x => x !== v);
+    state.ans[q.id] = cur;
+    // limpiar textos de opciones que ya no están marcadas
+    const t = state.txt[q.id] || {};
+    Object.keys(t).forEach(k => { if (!cur.includes(k)) delete t[k]; });
+  } else {
+    state.ans[q.id] = v;
+    const t = state.txt[q.id] || {};
+    Object.keys(t).forEach(k => { if (k !== v) delete t[k]; });
+  }
+  hideError();
+  syncOptions(q);
+  persist();
+  if (o && o.other && input.checked) {
+    const f = document.querySelector('[data-other="' + v + '"]');
+    if (f) f.focus();
+  }
+  renderTop();
+}
+
+/* ---------- Campos de formulario ---------- */
+function fieldsHTML(q, A) {
+  const fields = resolve(q.fields, A);
+  const cur = state.ans[q.id] || {};
+  let h = "";
+  fields.forEach(f => {
+    const id = "f_" + f.k, val = cur[f.k] || "";
+    if (f.kind === "radio") {
+      h += '<fieldset class="f" data-f="' + f.k + '"><legend>' + esc(f.label) + "</legend>" +
+        f.options.map(o => '<div class="optw"><label class="opt radio' + (val === o.v ? " sel" : "") + '"><input type="radio" name="' + id + '" value="' + esc(o.v) + '" data-fradio="' + f.k + '"' + (val === o.v ? " checked" : "") + '><span class="mark"></span><span class="lbl">' + esc(o.l) + "</span></label>" +
+          (o.other ? '<div class="other-row"' + (val === o.v ? "" : " hidden") + '><input class="in" type="text" data-field="' + f.k + '_otro" placeholder="' + esc(o.ph || "Escriba cuál") + '" value="' + esc(cur[f.k + "_otro"] || "") + '" aria-label="' + esc(o.l) + '"></div>' : "") +
+          "</div>").join("") +
+        '<div class="ferr" hidden></div></fieldset>';
+    } else if (f.kind === "textarea") {
+      h += '<div class="f" data-f="' + f.k + '"><label for="' + id + '">' + esc(f.label) + '</label><textarea class="in" id="' + id + '" data-field="' + f.k + '" placeholder="' + esc(f.ph || "") + '">' + esc(val) + '</textarea><div class="ferr" hidden></div></div>';
+    } else {
+      const type = f.kind === "municipio" ? "text" : f.kind;
+      const extra = f.kind === "municipio" ? ' list="municipios" autocomplete="off"' : (f.ac ? ' autocomplete="' + f.ac + '"' : "");
+      const im = f.kind === "tel" ? ' inputmode="tel"' : (f.kind === "email" ? ' inputmode="email" autocapitalize="off" spellcheck="false"' : "");
+      h += '<div class="f" data-f="' + f.k + '"><label for="' + id + '">' + esc(f.label) + '</label><input class="in" id="' + id + '" type="' + type + '" data-field="' + f.k + '" placeholder="' + esc(f.ph || "") + '" value="' + esc(val) + '"' + extra + im + '><div class="ferr" hidden></div></div>';
+    }
+  });
+  return h;
+}
+
+/* ---------- Validación ---------- */
+function showError(msg) { const e = $("#err"); if (e) { e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: "center", behavior: "smooth" }); } }
+function hideError() { const e = $("#err"); if (e) e.hidden = true; }
+
+function validate(q) {
+  if (q.type === "fields") {
+    const A = ctx(q.id);
+    const fields = resolve(q.fields, A);
+    const cur = state.ans[q.id] || {};
+    let first = null;
+    fields.forEach(f => {
+      const wrap = document.querySelector('[data-f="' + f.k + '"]');
+      const er = wrap && wrap.querySelector(".ferr");
+      const input = wrap && wrap.querySelector("input,textarea");
+      const val = (cur[f.k] || "").trim();
+      let msg = "";
+      if (f.req && !val) msg = f.kind === "radio" ? "Elija una opción." : "Complete este campo.";
+      else if (f.kind === "radio" && (f.options.find(x => x.v === cur[f.k]) || {}).other && !(cur[f.k + "_otro"] || "").trim()) msg = "Escriba cuál en el espacio de «Otra».";
+      else if (f.kind === "email" && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) msg = "Escriba un correo válido, por ejemplo nombre@municipio.gob.mx.";
+      if (er) { er.textContent = msg; er.hidden = !msg; }
+      if (input && f.kind !== "radio") input.setAttribute("aria-invalid", msg ? "true" : "false");
+      if (msg && !first) first = wrap;
+    });
+    if (first) { first.scrollIntoView({ block: "center", behavior: "smooth" }); const i = first.querySelector("input,textarea"); if (i) i.focus({ preventScroll: true }); return false; }
+    return true;
+  }
+  if (q.type === "groups") {
+    const cur = state.ans[q.id] || {};
+    for (const g of resolve(q.groups, ctx(q.id))) {
+      const sel = cur[g.k] || [];
+      if (!sel.length) { showError("Marque al menos una opción en «" + g.title + "». Si no lo sabe, marque «No sé»."); const fs = document.querySelector('[data-g="' + g.k + '"]'); if (fs) fs.scrollIntoView({ block: "start", behavior: "smooth" }); return false; }
+      for (const v of sel) {
+        const ov = g.options.find(x => x.v === v);
+        if (ov && ov.other && !(((state.txt[q.id] || {})[g.k + ":" + v]) || "").trim()) {
+          showError("Escriba el dato en el espacio de «" + ov.l + "» en la sección «" + g.title + "»."); const f = document.querySelector('[data-other="' + v + '"][data-gk="' + g.k + '"]'); if (f) f.focus(); return false;
+        }
+      }
+    }
+    return true;
+  }
+  const sel = selectedOf(q);
+  const o = optsOf(q);
+  const hasDk = o.some(x => x.dk);
+  if (!q.optional && (!sel.length || (q.type === "select" && !state.ans[q.id]))) {
+    showError(q.type === "multi" ? "Marque al menos una opción para continuar." + (hasDk ? " Si no lo sabe, marque «No sé»." : "")
+      : q.type === "select" ? "Elija un año para continuar. Si no lo sabe, elija «No sé»."
+      : "Elija una opción para continuar." + (hasDk ? " Si no lo sabe, elija «No sé»." : ""));
+    return false;
+  }
+  for (const v of sel) {
+    const ov = o.find(x => x.v === v);
+    if (ov && ov.other) {
+      const t = ((state.txt[q.id] || {})[v] || "").trim();
+      if (!t) { showError("Escriba el dato en el espacio de «" + ov.l + "»."); const f = document.querySelector('[data-other="' + v + '"]'); if (f) f.focus(); return false; }
+    }
+  }
+  return true;
+}
+
+/* ---------- Pantalla final y exportación ---------- */
+function csvCell(s) { return '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"'; }
+function buildCsv() {
+  const route = buildRoute(state.ans, false);
+  const notes = state.notes || {};
+  const rows = [["id", "parte", "pregunta", "respuesta", "detalle_otro"]];
+  const seen = {};   // parte -> ids de preguntas recorridas
+  const flushNote = p => {
+    const n = (notes[p] || "").trim();
+    if (n) rows.push(["NOTA." + p, PBYID[p].title, "NOTA de la parte (preguntas " + (seen[p] || []).join(", ") + ")", n, ""]);
+  };
+  let prev = null;
+  route.forEach(id => {
+    const q = QBYID[id], A = ctx(id), v = state.ans[id];
+    if (prev && prev !== q.part) flushNote(prev);
+    prev = q.part; (seen[q.part] = seen[q.part] || []).push(id);
+    const title = resolve(q.title, A);
+    const part = PBYID[q.part].title;
+    if (q.type === "fields") {
+      const fl = resolve(q.fields, A), cur = v || {};
+      fl.forEach(f => {
+        let val = cur[f.k] || "";
+        let det = "";
+        if (f.kind === "radio") { const oo = f.options.find(x => x.v === val); if (oo && oo.other) det = cur[f.k + "_otro"] || ""; val = oo ? oo.l : val; }
+        rows.push([id + "." + f.k, part, f.label, val, det]);
+      });
+    } else if (q.type === "groups") {
+      const cur = v || {};
+      resolve(q.groups, A).forEach(g => {
+        const sel = cur[g.k] || [];
+        const labels = sel.map(x => { const oo = g.options.find(y => y.v === x); return oo ? oo.l : x; });
+        const det = sel.map(x => (state.txt[id] || {})[g.k + ":" + x]).filter(Boolean).join(" | ");
+        rows.push([id + "." + g.k, part, title + " (sección " + g.title + ")", labels.join(" | "), det]);
+      });
+    } else {
+      const o = optsOf(q, A);
+      const sel = selectedOf(q);
+      const labels = sel.map(x => { const oo = o.find(y => y.v === x); return oo ? oo.l : x; });
+      const det = sel.map(x => (state.txt[id] || {})[x]).filter(Boolean).join(" | ");
+      rows.push([id, part, title, labels.join(" | "), det]);
+    }
+  });
+  if (prev) flushNote(prev);
+  // notas de partes que ya no están en la ruta actual (por ejemplo, si cambió una respuesta anterior)
+  PARTS.forEach(p => { if (!(p.id in seen) && (notes[p.id] || "").trim()) rows.push(["NOTA." + p.id, p.title, "NOTA de una parte fuera de la ruta actual", notes[p.id].trim(), ""]); });
+  return "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+}
+
+function renderEnd() {
+  const none = !hasInfo(state.ans.G1 ? { G1: state.ans.G1 } : {});
+  const msg = none
+    ? "Saber que su institución no registra ni recibe esta información también nos ayuda a completar el mapa del municipio."
+    : "Sus respuestas nos ayudan a entender cómo se registran los siniestros de tránsito en el municipio.";
+  $("#screen").innerHTML =
+    '<div class="done-mark">' + CHECK.replace("<svg", '<svg stroke="currentColor"') + "</div>" +
+    '<h1 data-focus tabindex="-1">Gracias por responder</h1>' +
+    '<p class="lead">' + esc(msg) + "</p>" +
+    '<p>El equipo revisará sus respuestas y, si usted lo indicó, se pondrá en contacto para dar seguimiento.</p>' +
+    (PROTOTYPE ? '<div class="banner">Versión de prueba. Sus respuestas no se enviaron a nadie. Puede guardar una copia para revisarlas.</div>' : "") +
+    '<div class="stack">' +
+    '<button class="btn primary block" id="btn-download"' + (downloadsApi ? "" : " hidden") + ">Descargar mis respuestas (.csv)</button>" +
+    '<button class="btn block" id="btn-copy">Copiar mis respuestas</button>' +
+    '<button class="btn quiet block" id="btn-review">Revisar o corregir mis respuestas</button>' +
+    '<button class="btn quiet block" id="btn-new">Empezar un cuestionario nuevo</button></div>' +
+    '<p class="status" id="status" role="status" aria-live="polite"></p>';
+}
+
+async function doDownload() {
+  const st = $("#status");
+  try {
+    await downloadsApi.save({ filename: "respuestas_diagnostico_municipal.csv", data: buildCsv() });
+    st.textContent = "Archivo guardado.";
+  } catch (e) {
+    st.textContent = (e && e.code === "declined") ? "No se guardó el archivo." : "No se pudo guardar el archivo. Pruebe con «Copiar mis respuestas».";
+  }
+}
+async function doCopy() {
+  const st = $("#status"), text = buildCsv().replace("\uFEFF", "");
+  try { await navigator.clipboard.writeText(text); st.textContent = "Respuestas copiadas. Puede pegarlas en un correo o en una hoja de cálculo."; return; } catch (e) { /* intento alterno */ }
+  try {
+    const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); document.body.removeChild(ta);
+    st.textContent = ok ? "Respuestas copiadas." : "No se pudo copiar en este dispositivo.";
+  } catch (e) { st.textContent = "No se pudo copiar en este dispositivo."; }
+}
+
+/* ---------- Vista de revisión (#revision) ---------- */
+const SCENARIOS = {
+  "A. Sin información": { I1: { municipio: "x", inst: "x", tipo: "transito" }, G1: ["none"] },
+  "B. Solo recibe, de una fuente": { I1: { municipio: "x", inst: "x", tipo: "obras" }, G1: ["recv"], X1: ["fiscalia"], X6: "no" },
+  "C. Registra solo totales": { I1: { municipio: "x", inst: "x", tipo: "policia" }, G1: ["own"], D1: ["totales"], R1: "nunca", R3: ["ninguno"], S1: ["papel"] },
+  "D. Registra en papel y captura en Excel (policía)": { I1: { municipio: "x", inst: "x", tipo: "policia" }, G1: ["own"], R1: "siempre", R3: ["propioEst"], R5: "papel", R7: ["hoja"], S1: ["pcinst"], X6: "no" },
+  "D2. Igual que D, pero tránsito (sin IPH)": { I1: { municipio: "x", inst: "x", tipo: "transito" }, G1: ["own"], R3: ["propioEst"], R5: "papel", R7: ["hoja"], S1: ["pcinst"], X6: "no" },
+  "E. Máximo: registra y recibe, todo activo": { I1: { municipio: "x", inst: "x", tipo: "policia" }, G1: ["own", "recv"], D1: ["detalle"], C1: ["lesionadas", "fallecidas", "danos"], N2: "aveces", R1: "siempre", R2: ["papel", "escaneo", "captura"], R3: ["propioEst", "propioLib", "mensajes", "central"], R5: "ambos", R7: ["hoja", "libro"], X1: ["fiscalia", "c5"], X4: "si", X6: "regular", U1: ["tendencias", "lugares"] }
+};
+function fillScenario(over) {
+  const ans = {};
+  for (let i = 0; i < 6; i++) buildRoute(ans, true).forEach(id => { if (ans[id] === undefined) ans[id] = over[id] !== undefined ? over[id] : QBYID[id].typical; });
+  Object.keys(over).forEach(k => { ans[k] = over[k]; });
+  return ans;
+}
+function renderReview() {
+  state.cur = "review";
+  $("#topbar").hidden = true; $("#actions").hidden = true;
+  $("#notes").hidden = true; $("#notes-open").hidden = true;
+  const rows = Object.entries(SCENARIOS).map(([n, o]) => {
+    const r = buildRoute(fillScenario(o), false);
+    return "<tr><td>" + esc(n) + "</td><td>" + r.length + "</td><td>" + (routeSeconds(r) / 60).toFixed(1) + "</td></tr>";
+  }).join("");
+  const A0 = { G1: ["own"] };
+  const list = PARTS.map(p => "<h2>" + esc(p.title) + "</h2>" + Q.filter(q => q.part === p.id).map(q =>
+    '<div class="rv-q"><span class="id">' + q.id + "</span>" + esc(resolve(q.title, A0)) +
+    '<div class="meta">' + ({ fields: "campos", single: "una opción", select: "lista", multi: "varias opciones", groups: "secciones con varias opciones" }[q.type]) + ", unos " + q.sec + " s</div>" +
+    '<div class="rule">Regla. ' + esc(q.rule) + "</div></div>").join("")).join("");
+  $("#screen").innerHTML = '<div class="rv"><p><a href="#" id="rv-back">Volver al cuestionario</a></p><h1>Vista de revisión</h1>' +
+    "<p>Reglas de salto y tiempos de cada pregunta. Los tiempos son supuestos de trabajo (segundos por pantalla más lectura de transiciones) y deben confirmarse con una prueba piloto.</p>" +
+    '<h2>Recorridos de ejemplo</h2><div class="scroll"><table><thead><tr><th>Recorrido</th><th>Pantallas</th><th>Minutos</th></tr></thead><tbody>' + rows + "</tbody></table></div>" + list + "</div>";
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener("click", e => {
+  const id = e.target.id;
+  if (id === "btn-start") { state = { ans: {}, txt: {}, notes: {}, hist: [], cur: "start", maxPct: 0, m50: false, m80: false }; go("I1"); }
+  else if (id === "btn-resume") { const s = restore(); if (s) { state = s; go(state.cur); } }
+  else if (id === "btn-restart") { clearSaved(); state = { ans: {}, txt: {}, notes: {}, hist: [], cur: "start", maxPct: 0, m50: false, m80: false }; go("I1"); }
+  else if (id === "btn-next") next();
+  else if (id === "btn-back") back();
+  else if (id === "btn-download") doDownload();
+  else if (id === "btn-copy") doCopy();
+  else if (id === "btn-review") { const route = buildRoute(state.ans, false); state.hist = route.slice(0, -1); go(route[route.length - 1]); }
+  else if (id === "btn-new") { clearSaved(); state = { ans: {}, txt: {}, notes: {}, hist: [], cur: "start", maxPct: 0, m50: false, m80: false }; go("start"); }
+  else if (id === "notes-open") toggleNotes(!$("#notes").classList.contains("open"));
+  else if (id === "notes-close") toggleNotes(false);
+  else if (id === "notes-copy") copyNotes();
+  else if (id === "notes-csv") downloadFromNotes();
+  else if (id === "rv-back") { e.preventDefault(); location.hash = ""; }
+});
+
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.matches("input[data-gk][type=checkbox]")) onGroupChange(t);
+  else if (t.matches("input[data-qid][type=checkbox],input[data-qid][type=radio]")) onOptionChange(t);
+  else if (t.matches("select[data-qid]")) { state.ans[t.getAttribute("data-qid")] = t.value; hideError(); persist(); renderTop(); }
+  else if (t.matches("input[data-fradio]")) {
+    const q = QBYID[state.cur]; const cur = state.ans[q.id] || (state.ans[q.id] = {}); cur[t.getAttribute("data-fradio")] = t.value;
+    t.closest("fieldset").querySelectorAll(".opt").forEach(l => l.classList.toggle("sel", l.querySelector("input").checked));
+    const er = t.closest("fieldset").querySelector(".ferr"); if (er) er.hidden = true;
+    t.closest("fieldset").querySelectorAll(".optw").forEach(w => { const r = w.querySelector(".other-row"); if (r) r.hidden = !w.querySelector("input[type=radio]").checked; });
+    const op = t.closest(".optw").querySelector(".other-row input"); if (op && !op.closest(".other-row").hidden) op.focus();
+    persist();
+  }
+});
+
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "nb-text") {
+    state.notes = state.notes || {};
+    state.notes[t.dataset.part] = t.value;
+    persist();
+  } else if (t.matches("input[data-other][data-gk]")) {
+    const qid = t.getAttribute("data-gq");
+    (state.txt[qid] = state.txt[qid] || {})[t.getAttribute("data-gk") + ":" + t.getAttribute("data-other")] = t.value;
+    hideError(); persist();
+  } else if (t.matches("input[data-other]")) {
+    const qid = t.getAttribute("data-qid");
+    (state.txt[qid] = state.txt[qid] || {})[t.getAttribute("data-other")] = t.value;
+    hideError(); persist();
+  } else if (t.matches("[data-field]")) {
+    const q = QBYID[state.cur]; const cur = state.ans[q.id] || (state.ans[q.id] = {});
+    cur[t.getAttribute("data-field")] = t.value;
+    t.setAttribute("aria-invalid", "false");
+    const er = t.parentElement.querySelector(".ferr"); if (er) er.hidden = true;
+    persist();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.matches("input.in[type=text],input.in[type=email],input.in[type=tel]") && !e.target.matches("[data-other]")) { e.preventDefault(); next(); }
+});
+
+function route() {
+  if (location.hash === "#revision") { renderReview(); return; }
+  if (state.cur === "review") { state.cur = "start"; }
+  if (state.cur === "start") go("start");
+}
+window.addEventListener("hashchange", () => { if (location.hash === "#revision") renderReview(); else { const s = restore(); state.cur = "start"; go("start"); } });
+
+/* ---------- Arranque ---------- */
+(function init() {
+  const dl = document.getElementById("municipios");
+  dl.innerHTML = MUNICIPIOS.map(m => '<option value="' + esc(m) + '"></option>').join("");
+  if (location.hash === "#revision") renderReview(); else go("start");
+  // Fuera de Claude (archivo descargado o publicado en otro sitio): descarga directa con el navegador
+  if (!(window.claude && window.claude.use)) {
+    downloadsApi = { save: async ({ filename, data }) => {
+      const url = URL.createObjectURL(new Blob([data], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a"); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } };
+    const nb = document.getElementById("notes-csv"); if (nb) nb.hidden = false;
+  }
+  try {
+    if (window.claude && window.claude.use) window.claude.use("downloads").then(d => { downloadsApi = d; const b = document.getElementById("btn-download"); if (b && d) b.hidden = false; const nb = document.getElementById("notes-csv"); if (nb && d) nb.hidden = false; }).catch(() => {});
+  } catch (e) { /* sin descargas */ }
+})();
+
+</script>
+</body>
+</html>
