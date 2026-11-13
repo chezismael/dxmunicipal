@@ -300,6 +300,11 @@ h1, .qt, .rv h2, .nb-head h2 { color: var(--blue); }
 
 .logo-local { height: 64px; width: auto; max-width: 100%; display: block; }
 
+.duration { margin: 0 0 20px; font-size: 18px; color: var(--blue); }
+.hero.divider { margin-top: 12px; padding: 30px 22px 30px; }
+.dv-label { margin: 0 0 6px; font-weight: 700; font-size: 16px; color: #fff; opacity: .9; }
+.dv-pre { margin: 18px 0 0; font-weight: 700; color: #fff; background: rgba(255,255,255,.16); display: inline-block; padding: 6px 12px; border-radius: 4px; }
+
 </style>
 </head>
 <body>
@@ -312,14 +317,11 @@ h1, .qt, .rv h2, .nb-head h2 { color: var(--blue); }
 </header>
 <div id="layout">
 <main id="screen"></main>
-<aside id="notes" aria-label="Libreta de notas" hidden>
-  <div class="nb-head"><h2 id="nb-title">Notas</h2><button class="btn quiet nb-close" id="notes-close" type="button">Cerrar</button></div>
+<aside id="notes" aria-label="Notas opcionales" hidden>
+  <div class="nb-head"><h2 id="nb-title">Notas (opcional)</h2><button class="btn quiet nb-close" id="notes-close" type="button">Cerrar</button></div>
   <p class="hint" id="nb-hint"></p>
-  <label class="sr" for="nb-text">Notas de esta parte</label>
-  <textarea class="in nb-text" id="nb-text" placeholder="Anote aquí lo que quiera recordar de esta parte. Se guarda en este dispositivo y se incluye en el CSV junto a las preguntas de esta parte."></textarea>
-  <button class="btn primary nb-copy" id="notes-csv" type="button" hidden>Descargar CSV con notas</button>
-  <button class="btn quiet nb-copy" id="notes-copy" type="button">Copiar CSV con notas</button>
-  <p class="status" id="nb-status" role="status" aria-live="polite"></p>
+  <label class="sr" for="nb-text">Notas opcionales de esta parte</label>
+  <textarea class="in nb-text" id="nb-text" placeholder="Escriba aquí si desea aclarar o detallar algo."></textarea>
 </aside>
 </div>
 <datalist id="municipios"></datalist>
@@ -338,15 +340,17 @@ const MUNICIPIOS = ["Acatic","Acatlán de Juárez","Ahualulco de Mercado","Amacu
 /* ===== ESPECIFICACIÓN DEL CUESTIONARIO (datos + reglas) ===== */
 
 const PARTS = [
-  { id: "p1", title: "Quién responde", intro: "Primero, quién responde y cómo contactarle. El teléfono es opcional." },
-  { id: "p2", title: "Información disponible", intro: "Ahora, qué información sobre siniestros hay en su institución. Si no está seguro, marque «No sé»." },
-  { id: "pf", title: "Información que reciben", intro: "Ahora haremos las mismas preguntas para cada fuente de la que reciben información, una por una. Cada pantalla indicará de cuál fuente se trata, por ejemplo, fuente 2 de 3." },
-  { id: "p3", title: "Qué se levanta en sitio", intro: "Veamos qué información se levanta en el lugar de los siniestros y cómo se enteran de ellos. Casi todo se responde con un toque." },
-  { id: "p4", title: "Cómo se levanta en sitio", intro: "Ahora, con qué formatos o herramientas se levanta la información en el sitio." },
-  { id: "p5", title: "Qué datos se incluyen", intro: "Siguiente, qué datos se anotan. Marque solo lo que hoy se anota." },
-  { id: "p6", title: "Dónde se guarda y cómo se mantiene", intro: "Ahora, dónde se guarda la información y cómo se mantiene al día." },
-  { id: "p7", title: "Intercambio con otras instituciones", intro: "Veamos si reciben o comparten información con otras instituciones." },
-  { id: "p9", title: "Cierre", intro: "Último paso. Ambas respuestas son opcionales." }
+  { id: "p1", title: "Quién responde", desc: A => "Sus datos de contacto y el tipo de institución desde la que responde." },
+  { id: "p2", title: "Información disponible", desc: A => "Si su institución recopila información sobre siniestros por su cuenta, si la recibe de otras instituciones, o ambas cosas." },
+  { id: "pf", title: "Información que reciben", desc: A => "Preguntas sobre cada fuente de la que su institución recibe información. Se hacen las mismas preguntas para cada fuente, una por una." },
+  { id: "p3", title: "Información que recopilan ustedes", desc: A => isRecv(A)
+      ? "Hasta aquí respondió sobre la información que recibe de otras instituciones. Ahora las preguntas son sobre la información que su institución recopila por sí misma en el lugar de los hechos."
+      : "Las preguntas de esta parte son sobre la información que su institución recopila por sí misma en el lugar de los hechos." },
+  { id: "p4", title: "Cómo la recopilan", desc: A => "Con qué formatos o herramientas se recopila la información en el sitio, si son en papel o digitales, y qué se hace con ella después." },
+  { id: "p5", title: "Qué datos se incluyen", desc: A => "Qué datos concretos se anotan sobre los siniestros que su institución recopila: del siniestro, de los vehículos y de las víctimas." },
+  { id: "p6", title: "Dónde se guarda y cómo se mantiene", desc: A => "Dónde se guarda la información y cómo se mantiene al día." },
+  { id: "p7", title: "Intercambio con otras instituciones", desc: A => "Si identifican siniestros repetidos y si comparten información sobre siniestros con otras instituciones." },
+  { id: "p9", title: "Cierre", desc: A => "Dos comentarios opcionales antes de terminar." }
 ];
 
 /* ---------- Íconos (trazo simple, 24x24) ---------- */
@@ -544,7 +548,7 @@ function buildSourceQs() {
 /* type: fields | single | select | multi | groups
    sec: segundos estimados · typical: respuesta supuesta para proyectar el avance
    rule: regla de salto en lenguaje humano (se muestra en #revision) */
-const Q = [
+const QBASE = [
   /* PARTE 1 */
   {
     id: "I1", part: "p1", type: "fields", sec: 70,
@@ -598,7 +602,7 @@ const Q = [
   /* PARTE 3 — solo quien levanta información en sitio */
   {
     id: "D1", part: "p3", type: "multi", sec: 14,
-    title: "¿Qué tipo de información sobre los siniestros recopilan en el lugar de los hechos?",
+    title: "¿Qué tipo de información sobre los siniestros recopilan ustedes en el lugar de los hechos?",
     help: "Marque todo lo que incluye.",
     options: TIPO_INFO,
     typical: ["detalle"],
@@ -971,9 +975,24 @@ const Q = [
   }
 ];
 
+/* Hoja de inicio de cada parte (sin pregunta): nombre de la sección y de qué trata */
+const DIVIDER_PARTS = ["p2", "pf", "p3", "p4", "p5", "p6", "p7"];
+const partVisible = (A, pid) => QBASE.some(q => q.part === pid && (!q.when || q.when(A)));
+const Q = (() => {
+  const out = [], done = new Set();
+  QBASE.forEach(q => {
+    if (DIVIDER_PARTS.includes(q.part) && !done.has(q.part)) {
+      done.add(q.part);
+      out.push({ id: "DIV_" + q.part, part: q.part, type: "divider", sec: 6, when: A => partVisible(A, q.part),
+        rule: "Hoja de inicio de la parte «" + PARTS.find(p => p.id === q.part).title + "» (sin pregunta). Se muestra si la parte tiene al menos una pregunta visible." });
+    }
+    out.push(q);
+  });
+  return out;
+})();
 const QBYID = Object.fromEntries(Q.map(q => [q.id, q]));
 const PBYID = Object.fromEntries(PARTS.map(p => [p.id, p]));
-const PART_OVERHEAD = 5;   // segundos por parte (leer la transición)
+const PART_OVERHEAD = 0;   // la hoja de inicio de cada parte ya cuenta sus segundos
 const START_OVERHEAD = 20; // segundos de la pantalla de inicio
 
 /* ---------- Motor de rutas ---------- */
@@ -1018,14 +1037,13 @@ function contextFor(ans, upToId) {
 /* Configuración opcional (archivo config.js junto a index.html). Sin él, la página funciona como versión de prueba. */
 const CFG = Object.assign({ submitUrl: "", token: "", prototype: true, reviewerTools: true, logoLocal: "", logoLocalAlt: "" }, window.DX_CONFIG || {});
 const PROTOTYPE = !!CFG.prototype;
-const VERSION = "20261113-1804";
+const VERSION = "20261113-1854";
 const newId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const STORE_KEY = "dx_municipal_siniestros_v1";
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let state = { ans: {}, txt: {}, notes: {}, sid: newId(), sent: false, hist: [], cur: "start", maxPct: 0, m50: false, m80: false };
-let downloadsApi = null;
 
 /* ---------- Persistencia (solo en este dispositivo) ---------- */
 function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ } }
@@ -1090,12 +1108,13 @@ function go(id, back) {
   if (id !== "start") persist();   // la pantalla de inicio no debe borrar el avance guardado
   if (id === "start") renderStart();
   else if (id === "end") { renderEnd(); if (CFG.submitUrl && !state.sent) submitResponses(); else if (CFG.submitUrl) setSendStatus("ok"); }
+  else if (QBYID[id].type === "divider") renderDivider(QBYID[id]);
   else renderQuestion(QBYID[id]);
   renderTop();
   const bar = $("#actions");
   bar.hidden = (id === "start" || id === "end" || id === "review");
   if (id !== "start" && id !== "end") {
-    $("#btn-next").textContent = (progressInfo().route.slice(-1)[0] === id) ? "Terminar" : "Siguiente";
+    $("#btn-next").textContent = QBYID[id].type === "divider" ? "Continuar" : ((progressInfo().route.slice(-1)[0] === id) ? "Terminar" : "Siguiente");
   }
   renderNotes();
   window.scrollTo(0, 0);
@@ -1119,12 +1138,11 @@ function back() {
 /* ---------- Libreta de notas (una por parte) ---------- */
 function renderNotes() {
   const aside = $("#notes"), fab = $("#notes-open");
-  if (!CFG.reviewerTools) { aside.hidden = true; fab.hidden = true; return; }
   const q = QBYID[state.cur];
-  if (!q) { aside.hidden = true; fab.hidden = true; aside.classList.remove("open"); return; }
+  if (!q || q.type === "divider") { aside.hidden = true; fab.hidden = true; aside.classList.remove("open"); return; }
   state.notes = state.notes || {};
-  $("#nb-title").textContent = "Notas: " + PBYID[q.part].title;
-  $("#nb-hint").textContent = "Cada parte tiene su propia libreta.";
+  $("#nb-title").textContent = "Notas (opcional)";
+  $("#nb-hint").textContent = "Use este espacio si quiere aclarar o dar más detalle sobre las preguntas de esta parte. No es obligatorio.";
   const ta = $("#nb-text");
   ta.dataset.part = q.part;
   ta.value = state.notes[q.part] || "";
@@ -1138,33 +1156,15 @@ function toggleNotes(open) {
   if (open) $("#nb-text").focus({ preventScroll: true });
 }
 
-async function copyNotes() {
-  const st = $("#nb-status"), txt = buildCsv().replace("\uFEFF", "");
-  try { await navigator.clipboard.writeText(txt); st.textContent = "CSV copiado. Péguelo en el chat."; return; } catch (e) { /* alterno */ }
-  try {
-    const ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); document.body.removeChild(ta);
-    st.textContent = ok ? "CSV copiado. Péguelo en el chat." : "No se pudo copiar en este dispositivo.";
-  } catch (e) { st.textContent = "No se pudo copiar en este dispositivo."; }
-}
-async function downloadFromNotes() {
-  const st = $("#nb-status");
-  try { await downloadsApi.save({ filename: "respuestas_y_notas_dx_municipal.csv", data: buildCsv() }); st.textContent = "Archivo guardado."; }
-  catch (e) { st.textContent = (e && e.code === "declined") ? "No se guardó el archivo." : "No se pudo guardar. Pruebe con «Copiar CSV con notas»."; }
-}
-
 /* ---------- Pantalla de inicio ---------- */
 function renderStart() {
   const saved = restore();
   const hasSaved = saved && saved.cur && saved.cur !== "start" && saved.cur !== "end" && Object.keys(saved.ans).length;
-  const banner = PROTOTYPE
-    ? '<div class="banner">Versión de prueba para revisión. ' + (CFG.submitUrl ? "Las respuestas se envían al equipo del proyecto." : "Las respuestas no se envían a nadie; se guardan solo en este dispositivo.") + (CFG.reviewerTools ? ' <a href="#revision">Ver reglas de salto</a>' : "") + "</div>"
-    : "";
-  $("#screen").innerHTML = banner +
+  $("#screen").innerHTML =
     '<div class="hero"><img class="hero-icon" alt="" src="' + ASSETS.icon_white + '">' +
     '<h1 data-focus tabindex="-1">Diagnóstico municipal de registros de siniestros de tránsito</h1>' +
     '<p class="lead">Queremos conocer cómo registra y guarda su institución la información sobre siniestros de tránsito. No es una evaluación. No necesita tener sistemas informáticos ni bases de datos para responder.</p></div>' +
-    '<dl class="facts"><div><dt>Entre 3 y 16 minutos</dt><dd>Depende de lo que registre su institución. Si no registra nada, son menos de 3.</dd></div></dl>' +
+    '<p class="duration"><b>Duración:</b> Entre 3 y 16 minutos</p>' +
     (hasSaved
       ? '<div class="stack"><button class="btn primary block" id="btn-resume">Continuar donde me quedé</button><button class="btn quiet block" id="btn-restart">Empezar de nuevo</button></div>'
       : '<button class="btn primary block" id="btn-start">Comenzar</button>') +
@@ -1176,13 +1176,18 @@ function renderStart() {
 }
 
 /* ---------- Pantalla de pregunta ---------- */
-function transitionHTML(q, pi) {
-  const first = pi.route.find(id => QBYID[id].part === q.part);
-  if (first !== q.id) return "";
+function renderDivider(q) {
+  const A = ctx(q.id), pi = progressInfo();
   let pre = "";
-  if (state.maxPct >= 0.5 && !state.m50) { pre = "Ya va por la mitad. "; state.m50 = true; }
-  else if (state.maxPct >= 0.8 && !state.m80) { pre = "Casi termina. "; state.m80 = true; }
-  return '<div class="trans">' + esc(pre + PBYID[q.part].intro) + "</div>";
+  if (state.maxPct >= 0.5 && !state.m50) { pre = "Ya va por la mitad."; state.m50 = true; }
+  else if (state.maxPct >= 0.8 && !state.m80) { pre = "Casi termina."; state.m80 = true; }
+  const p = PBYID[q.part];
+  $("#screen").innerHTML =
+    '<div class="hero divider"><img class="hero-icon" alt="" src="' + ASSETS.icon_white + '">' +
+    '<p class="dv-label">Parte ' + pi.partIdx + " de " + pi.partTotal + "</p>" +
+    '<h1 data-focus tabindex="-1">' + esc(p.title) + "</h1>" +
+    '<p class="lead">' + esc(resolve(p.desc, A)) + "</p>" +
+    (pre ? '<p class="dv-pre">' + esc(pre) + "</p>" : "") + "</div>";
 }
 
 function tagHTML(t) {
@@ -1190,7 +1195,6 @@ function tagHTML(t) {
 }
 function renderQuestion(q) {
   const A = ctx(q.id);
-  const pi = progressInfo();
   const title = resolve(q.title, A), help = resolve(q.help, A);
   let body = "";
   if (q.type === "fields") body = fieldsHTML(q, A);
@@ -1204,7 +1208,7 @@ function renderQuestion(q) {
     body = '<fieldset' + (anyIc ? ' style="--icw:' + (wide ? 56 : 28) + 'px"' : "") + '><legend class="sr">' + esc(title) + "</legend>" + os.map(o => optionHTML(q, o, anyIc)).join("") + "</fieldset>" +
       (q.max ? '<p class="count" id="count" aria-live="polite"></p>' : "");
   }
-  $("#screen").innerHTML = transitionHTML(q, pi) +
+  $("#screen").innerHTML =
     (q.tag ? tagHTML(resolve(q.tag, Object.assign({}, A, { _txt: state.txt }))) : "") +
     '<h2 class="qt" id="qt" data-focus tabindex="-1">' + esc(title) + "</h2>" +
     (help ? '<p class="help">' + esc(help) + "</p>" : "") +
@@ -1409,6 +1413,7 @@ function showError(msg) { const e = $("#err"); if (e) { e.textContent = msg; e.h
 function hideError() { const e = $("#err"); if (e) e.hidden = true; }
 
 function validate(q) {
+  if (q.type === "divider") return true;
   if (q.type === "fields") {
     const A = ctx(q.id);
     const fields = resolve(q.fields, A);
@@ -1473,7 +1478,7 @@ function validate(q) {
 /* ---------- Pantalla final y exportación ---------- */
 function csvCell(s) { return '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"'; }
 function buildCsv() {
-  const route = buildRoute(state.ans, false);
+  const route = buildRoute(state.ans, false).filter(id => QBYID[id].type !== "divider");
   const notes = state.notes || {};
   const rows = [["id", "parte", "pregunta", "respuesta", "detalle_otro"]];
   const seen = {};   // parte -> ids de preguntas recorridas
@@ -1525,7 +1530,7 @@ function buildCsv() {
 
 /* ---------- Envío de respuestas (opcional, solo si hay submitUrl en config.js) ---------- */
 function collectAnswers() {
-  const route = buildRoute(state.ans, false);
+  const route = buildRoute(state.ans, false).filter(id => QBYID[id].type !== "divider");
   const out = [];
   route.forEach(id => {
     const q = QBYID[id], A = ctx(id), v = state.ans[id];
@@ -1558,6 +1563,11 @@ function collectAnswers() {
         detalle: sel.map(x => (state.txt[id] || {})[x]).filter(Boolean).join(" | ") }));
     }
   });
+  // notas opcionales de quien responde, una por parte
+  PARTS.forEach(p => {
+    const n = ((state.notes || {})[p.id] || "").trim();
+    if (n) out.push({ id: "NOTA." + p.id, parte: p.id, parte_titulo: p.title, fuente: null, pregunta: "Notas (opcional) de la parte", codigos: [], respuesta: n, detalle: "" });
+  });
   return out;
 }
 function collectFiles() {
@@ -1576,12 +1586,14 @@ function collectFiles() {
 function allColumns() {
   const A0 = { G1: ["own", "recv"] }, cols = [];
   Q.forEach(q => {
+    if (q.type === "divider") return;
     const m = /^F(\d+)/.exec(q.id), pre = m ? "Fuente " + m[1] + ". " : "";
     const title = pre + resolve(q.title, A0);
     if (q.type === "fields") { if (q.id === "I1") return; resolve(q.fields, A0).forEach(f => cols.push({ id: q.id + "." + f.k, etiqueta: title + " / " + f.label })); }
     else if (q.type === "groups") resolve(q.groups, A0).forEach(g => cols.push({ id: q.id + "." + g.k, etiqueta: title + " (sección " + g.title + ")" }));
     else cols.push({ id: q.id, etiqueta: title });
   });
+  PARTS.forEach(p => cols.push({ id: "NOTA." + p.id, etiqueta: "Notas (opcional) de la parte: " + p.title }));
   return cols;
 }
 function buildFila(respuestas) {
@@ -1618,42 +1630,12 @@ async function submitResponses() {
 }
 
 function renderEnd() {
-  const none = !hasInfo(state.ans.G1 ? { G1: state.ans.G1 } : {});
-  const msg = none
-    ? "Saber que su institución no registra ni recibe esta información también nos ayuda a completar el mapa del municipio."
-    : "Sus respuestas nos ayudan a entender cómo se registran los siniestros de tránsito en el municipio.";
   $("#screen").innerHTML =
     '<div class="done-mark">' + CHECK.replace("<svg", '<svg stroke="currentColor"') + "</div>" +
     '<h1 data-focus tabindex="-1">Gracias por responder</h1>' +
-    '<p class="lead">' + esc(msg) + "</p>" +
+    '<p class="lead">Sus respuestas nos ayudan a entender cómo se registran los siniestros de tránsito en el municipio.</p>' +
     '<p>El equipo revisará sus respuestas y, si usted lo indicó, se pondrá en contacto para dar seguimiento.</p>' +
-    (PROTOTYPE && !CFG.submitUrl ? '<div class="banner">Versión de prueba. Sus respuestas no se enviaron a nadie. Puede guardar una copia para revisarlas.</div>' : "") +
-    (CFG.submitUrl ? '<p class="status send" id="send-status" role="status" aria-live="polite"></p><button class="btn primary block" id="btn-retry" hidden>Reintentar el envío</button>' : "") +
-    '<div class="stack">' +
-    '<button class="btn ' + (CFG.submitUrl ? "quiet" : "primary") + ' block" id="btn-download"' + (downloadsApi ? "" : " hidden") + ">Descargar mis respuestas (.csv)</button>" +
-    '<button class="btn block" id="btn-copy">Copiar mis respuestas</button>' +
-    '<button class="btn quiet block" id="btn-review">Revisar o corregir mis respuestas</button>' +
-    '<button class="btn quiet block" id="btn-new">Empezar un cuestionario nuevo</button></div>' +
-    '<p class="status" id="status" role="status" aria-live="polite"></p>';
-}
-
-async function doDownload() {
-  const st = $("#status");
-  try {
-    await downloadsApi.save({ filename: "respuestas_diagnostico_municipal.csv", data: buildCsv() });
-    st.textContent = "Archivo guardado.";
-  } catch (e) {
-    st.textContent = (e && e.code === "declined") ? "No se guardó el archivo." : "No se pudo guardar el archivo. Pruebe con «Copiar mis respuestas».";
-  }
-}
-async function doCopy() {
-  const st = $("#status"), text = buildCsv().replace("\uFEFF", "");
-  try { await navigator.clipboard.writeText(text); st.textContent = "Respuestas copiadas. Puede pegarlas en un correo o en una hoja de cálculo."; return; } catch (e) { /* intento alterno */ }
-  try {
-    const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); document.body.removeChild(ta);
-    st.textContent = ok ? "Respuestas copiadas." : "No se pudo copiar en este dispositivo.";
-  } catch (e) { st.textContent = "No se pudo copiar en este dispositivo."; }
+    (CFG.submitUrl ? '<p class="status send" id="send-status" role="status" aria-live="polite"></p><button class="btn primary block" id="btn-retry" hidden>Reintentar el envío</button>' : "");
 }
 
 /* ---------- Vista de revisión (#revision) ---------- */
@@ -1681,8 +1663,8 @@ function renderReview() {
   }).join("");
   const A0 = { G1: ["own"] };
   const list = PARTS.map(p => "<h2>" + esc(p.title) + "</h2>" + Q.filter(q => q.part === p.id && !/^F(\d+)/.test(q.id) || (q.part === p.id && /^F1[A-Z]/.test(q.id))).map(q =>
-    '<div class="rv-q"><span class="id">' + q.id + "</span>" + esc(resolve(q.title, A0)) +
-    '<div class="meta">' + ({ fields: "campos", single: "una opción", select: "lista", multi: "varias opciones", groups: "secciones con varias opciones" }[q.type]) + ", unos " + q.sec + " s</div>" +
+    '<div class="rv-q"><span class="id">' + q.id + "</span>" + esc(q.type === "divider" ? "Hoja de inicio de la parte (sin pregunta)" : resolve(q.title, A0)) +
+    '<div class="meta">' + ({ fields: "campos", single: "una opción", select: "lista", multi: "varias opciones", groups: "secciones con varias opciones", divider: "hoja sin pregunta" }[q.type]) + ", unos " + q.sec + " s</div>" +
     '<div class="rule">Regla. ' + esc(q.rule) + "</div></div>").join("")).join("");
   $("#screen").innerHTML = '<div class="rv"><p><a href="#" id="rv-back">Volver al cuestionario</a></p><h1>Vista de revisión</h1>' +
     "<p>Reglas de salto y tiempos de cada pregunta. Los tiempos son supuestos de trabajo (segundos por pantalla más lectura de transiciones) y deben confirmarse con una prueba piloto.</p>" +
@@ -1698,19 +1680,13 @@ document.addEventListener("click", e => {
   else if (id === "btn-restart") { clearSaved(); state = { ans: {}, txt: {}, notes: {}, sid: newId(), sent: false, hist: [], cur: "start", maxPct: 0, m50: false, m80: false }; go("I1"); }
   else if (id === "btn-next") next();
   else if (id === "btn-back") back();
-  else if (id === "btn-download") doDownload();
-  else if (id === "btn-copy") doCopy();
   else if (id === "btn-retry") submitResponses();
   else if (e.target.matches && e.target.matches("[data-clearfiles]")) {
     const q = QBYID[state.cur], k = e.target.getAttribute("data-clearfiles");
     delete window.__files[q.id + "." + k]; (state.ans[q.id] || {})[k] = []; const fi = document.querySelector('input[type=file][data-file="' + k + '"]'); if (fi) fi.value = ""; persist(); refreshFileList(q, k);
   }
-  else if (id === "btn-review") { state.sent = false; const route = buildRoute(state.ans, false); state.hist = route.slice(0, -1); go(route[route.length - 1]); }
-  else if (id === "btn-new") { clearSaved(); state = { ans: {}, txt: {}, notes: {}, sid: newId(), sent: false, hist: [], cur: "start", maxPct: 0, m50: false, m80: false }; go("start"); }
   else if (id === "notes-open") toggleNotes(!$("#notes").classList.contains("open"));
   else if (id === "notes-close") toggleNotes(false);
-  else if (id === "notes-copy") copyNotes();
-  else if (id === "notes-csv") downloadFromNotes();
   else if (id === "rv-back") { e.preventDefault(); location.hash = ""; }
 });
 
@@ -1785,19 +1761,6 @@ window.addEventListener("hashchange", () => { if (location.hash === "#revision" 
   const dl = document.getElementById("municipios");
   dl.innerHTML = MUNICIPIOS.map(m => '<option value="' + esc(m) + '"></option>').join("");
   if (location.hash === "#revision" && CFG.reviewerTools) renderReview(); else go("start");
-  // Fuera de Claude (archivo descargado o publicado en otro sitio): descarga directa con el navegador
-  if (!(window.claude && window.claude.use)) {
-    downloadsApi = { save: async ({ filename, data }) => {
-      const url = URL.createObjectURL(new Blob([data], { type: "text/csv;charset=utf-8" }));
-      const a = document.createElement("a"); a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } };
-    const nb = document.getElementById("notes-csv"); if (nb) nb.hidden = false;
-  }
-  try {
-    if (window.claude && window.claude.use) window.claude.use("downloads").then(d => { downloadsApi = d; const b = document.getElementById("btn-download"); if (b && d) b.hidden = false; const nb = document.getElementById("notes-csv"); if (nb && d) nb.hidden = false; }).catch(() => {});
-  } catch (e) { /* sin descargas */ }
 })();
 
 </script>
